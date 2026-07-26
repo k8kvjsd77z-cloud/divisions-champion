@@ -298,14 +298,22 @@ function appendCaughtUpTile(path){
   path.appendChild(tile);
 }
 
+function appendReviewPreviewTile(path, n, taskCount){
+  const tile = document.createElement('div');
+  tile.className = 'package-tile locked review';
+  tile.innerHTML = `<span>🔒 ${packageTileLabel(n)}</span><span class="stars">${taskCount}</span>`;
+  path.appendChild(tile);
+}
+
 function renderPackagePath(){
   const path = document.getElementById('package-path');
   path.innerHTML = '';
   const current = currentPackageNumber(currentSubject);
   const packages = state.subjects[currentSubject].packages;
 
-  const lastCurriculumToShow = Math.min(Math.max(current + 2, 1), CURRICULUM_PACKAGE_COUNT);
-  for(let n=1; n<=lastCurriculumToShow; n++){
+  // Alle 10 Curriculum-Pakete sind eine feste, überschaubare Liste - immer
+  // komplett anzeigen, nicht nur eine Vorschau der nächsten paar.
+  for(let n=1; n<=CURRICULUM_PACKAGE_COUNT; n++){
     appendPackageTile(path, n, current, packages);
   }
 
@@ -313,8 +321,15 @@ function renderPackagePath(){
     for(let n=CURRICULUM_PACKAGE_COUNT+1; n<current; n++){
       appendPackageTile(path, n, current, packages);
     }
-    if(packageHasContent(currentSubject, current)){
+    const blocks = buildSonderblöcke(currentSubject);
+    if(blocks.length > 0){
+      // Der nächste Block ist sofort spielbar; weitere bereits erkannte
+      // Blöcke werden als Vorschau gezeigt (Inhalt kann sich noch verschieben,
+      // sobald der erste Block bearbeitet ist).
       appendPackageTile(path, current, current, packages);
+      for(let i=1; i<blocks.length; i++){
+        appendReviewPreviewTile(path, current+i, blocks[i].length);
+      }
     } else {
       appendCaughtUpTile(path);
     }
