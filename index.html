@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Divisions-Champion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#fff7e6;
+    --bg2:#e8f7ff;
+    --ink:#33334d;
+    --card:#ffffff;
+    --shadow:0 8px 20px rgba(0,0,0,0.12);
+    --radius:22px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Baloo 2','Trebuchet MS',Verdana,sans-serif;
+    background:linear-gradient(160deg,var(--bg2),var(--bg1));
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+    overflow-x:hidden;
+  }
+  #app{
+    width:100%;
+    max-width:640px;
+    position:relative;
+  }
+  .screen{display:none;}
+  .screen.active{display:block; animation:fadein .25s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:28px 24px;
+    text-align:center;
+  }
+  h1{font-size:2rem; margin:0 0 6px; font-weight:800;}
+  h2{font-size:1.4rem; margin:0 0 14px; font-weight:700;}
+  p.sub{margin:0 0 20px; opacity:.75; font-size:1.05rem;}
+  .mascot{font-size:64px; line-height:1; margin-bottom:8px;}
+
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:16px;
+    font-weight:700;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  button:active{transform:scale(0.94);}
+
+  .btn-primary{
+    background:#ff6b6b;
+    color:#fff;
+    font-size:1.2rem;
+    padding:16px 30px;
+    box-shadow:0 6px 0 #d84f4f;
+  }
+  .btn-primary:active{box-shadow:0 2px 0 #d84f4f;}
+
+  .btn-secondary{
+    background:#eef1f8;
+    color:var(--ink);
+    font-size:1rem;
+    padding:10px 18px;
+    margin-top:10px;
+  }
+
+  .stat-row{
+    display:flex;
+    justify-content:center;
+    gap:22px;
+    margin:14px 0 22px;
+    flex-wrap:wrap;
+  }
+  .stat{
+    background:#f5f6fb;
+    border-radius:14px;
+    padding:10px 16px;
+    min-width:90px;
+  }
+  .stat b{display:block; font-size:1.3rem;}
+  .stat span{font-size:.8rem; opacity:.6;}
+
+  /* Level map */
+  .level-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+    margin:18px 0;
+  }
+  .level-btn{
+    position:relative;
+    aspect-ratio:1/1;
+    border-radius:18px;
+    color:#fff;
+    font-size:1.4rem;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    box-shadow:0 5px 0 rgba(0,0,0,0.18);
+  }
+  .level-btn:disabled{
+    background:#cfd3e0 !important;
+    color:#8a8fa3;
+    box-shadow:0 5px 0 rgba(0,0,0,0.08);
+    cursor:not-allowed;
+  }
+  .level-btn .stars{font-size:.85rem; letter-spacing:1px;}
+  .level-btn .lock{position:absolute; top:8px; right:10px; font-size:1rem;}
+  .akademie-btn{
+    margin-top:6px;
+    width:100%;
+    background:linear-gradient(120deg,#7c4dff,#536dfe);
+    color:#fff;
+    padding:16px;
+    font-size:1.15rem;
+    box-shadow:0 6px 0 #4638c2;
+  }
+  .akademie-hint{
+    font-size:.85rem;
+    background:#fff3e0;
+    border-radius:12px;
+    padding:9px 14px;
+    margin:12px 0;
+    color:#8a5a00;
+    font-weight:700;
+    line-height:1.4;
+  }
+
+  /* Quiz screen */
+  .quiz-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    font-size:.95rem;
+    opacity:.75;
+  }
+  .progress-bar{
+    height:10px;
+    background:#eef1f8;
+    border-radius:8px;
+    overflow:hidden;
+    margin-bottom:22px;
+  }
+  .progress-fill{
+    height:100%;
+    background:#4caf50;
+    width:0%;
+    transition:width .35s ease;
+  }
+  .question{
+    font-size:2.6rem;
+    font-weight:800;
+    margin:10px 0 6px;
+  }
+  .streak-line{
+    min-height:24px;
+    font-size:1rem;
+    font-weight:700;
+    color:#ff9800;
+    margin-bottom:10px;
+  }
+  .answer-box{
+    font-size:2rem;
+    font-weight:800;
+    background:#f5f6fb;
+    border-radius:16px;
+    padding:12px;
+    min-height:48px;
+    margin:0 auto 18px;
+    max-width:180px;
+    letter-spacing:2px;
+  }
+  .answer-box.correct{background:#d5f5db; color:#1f8b3b;}
+  .answer-box.wrong{background:#ffdcdc; color:#c62828;}
+
+  .keypad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    max-width:280px;
+    margin:0 auto;
+  }
+  .key{
+    background:#eef1f8;
+    color:var(--ink);
+    font-size:1.4rem;
+    padding:16px 0;
+  }
+  .key.del{background:#ffe0b2; color:#e65100;}
+  .key.ok{background:#4caf50; color:#fff; grid-column:span 1;}
+
+  .feedback-msg{
+    min-height:28px;
+    font-size:1.15rem;
+    font-weight:700;
+    margin-top:12px;
+  }
+
+  /* Confetti */
+  .confetti{
+    position:fixed;
+    top:-20px;
+    width:10px;
+    height:16px;
+    z-index:999;
+    border-radius:2px;
+    pointer-events:none;
+    animation:fall linear forwards;
+  }
+  @keyframes fall{
+    to{ transform:translateY(110vh) rotate(360deg); }
+  }
+
+  .footer-link{
+    margin-top:18px;
+    font-size:.8rem;
+    opacity:.45;
+    text-decoration:underline;
+    cursor:pointer;
+    display:inline-block;
+  }
+
+  .badge-row{display:flex; justify-content:center; gap:10px; margin:14px 0; flex-wrap:wrap;}
+  .badge{font-size:1.6rem;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div class="screen active" id="screen-start">
+    <div class="card">
+      <div class="mascot">🦊</div>
+      <h1>Divisions-Champion</h1>
+      <p class="sub">Übe die Divisionsaufgaben ÷1 bis ÷12 und sammle Sterne! Milli, deine Trainerin, merkt sich dabei, was du schon kannst.</p>
+      <div class="stat-row">
+        <div class="stat"><b id="start-stars">0/36</b><span>Sterne</span></div>
+        <div class="stat"><b id="start-score">0</b><span>Punkte</span></div>
+      </div>
+      <button class="btn-primary" onclick="goToMap()">🚀 Spiel starten</button>
+    </div>
+  </div>
+
+  <!-- LEVEL MAP -->
+  <div class="screen" id="screen-map">
+    <div class="card">
+      <h2>Wähle eine Reihe</h2>
+      <div class="stat-row">
+        <div class="stat"><b id="map-stars">0/36</b><span>Sterne</span></div>
+        <div class="stat"><b id="map-score">0</b><span>Punkte</span></div>
+      </div>
+      <div class="level-grid" id="level-grid"></div>
+      <div class="akademie-hint" id="akademie-hint-map"></div>
+      <button class="akademie-btn" id="akademie-button" onclick="startLevel('akademie')">🦊 Milli Power Akademie</button>
+      <br>
+      <span class="footer-link" onclick="resetProgress()">Fortschritt zurücksetzen</span>
+    </div>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div class="screen" id="screen-quiz">
+    <div class="card">
+      <div class="quiz-top">
+        <span id="quiz-title">÷ 1</span>
+        <span id="quiz-count">Frage 1 / 12</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="akademie-hint" id="akademie-hint-quiz" style="display:none;"></div>
+
+      <div class="question" id="question-text">6 ÷ 2 =</div>
+      <div class="streak-line" id="streak-line"></div>
+      <div class="answer-box" id="answer-box">&nbsp;</div>
+      <div class="feedback-msg" id="feedback-msg">&nbsp;</div>
+
+      <div class="keypad" id="keypad">
+        <button class="key" data-k="1">1</button>
+        <button class="key" data-k="2">2</button>
+        <button class="key" data-k="3">3</button>
+        <button class="key" data-k="4">4</button>
+        <button class="key" data-k="5">5</button>
+        <button class="key" data-k="6">6</button>
+        <button class="key" data-k="7">7</button>
+        <button class="key" data-k="8">8</button>
+        <button class="key" data-k="9">9</button>
+        <button class="key del" data-k="del">⌫</button>
+        <button class="key" data-k="0">0</button>
+        <button class="key ok" data-k="ok">✓</button>
+      </div>
+      <br>
+      <span class="footer-link" onclick="goToMap()">Zurück zur Übersicht</span>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div class="screen" id="screen-result">
+    <div class="card">
+      <div class="mascot" id="result-mascot">🎉</div>
+      <h2 id="result-title">Super gemacht!</h2>
+      <div id="result-stars" style="font-size:2.4rem; margin:10px 0;"></div>
+      <p class="sub" id="result-detail">Du hast die Reihe geschafft.</p>
+      <button class="btn-primary" onclick="goToMap()">Weiter zur Übersicht</button>
+    </div>
+  </div>
+
+  <!-- CHAMPION SCREEN -->
+  <div class="screen" id="screen-champion">
+    <div class="card">
+      <div class="mascot">🏆</div>
+      <h1>Divisions-Champion!</h1>
+      <p class="sub">Du hast alle 12 Reihen gemeistert!</p>
+      <div class="badge-row" id="champion-badges"></div>
+      <div class="stat-row">
+        <div class="stat"><b id="champ-stars">36/36</b><span>Sterne</span></div>
+        <div class="stat"><b id="champ-score">0</b><span>Punkte</span></div>
+      </div>
+      <button class="btn-primary" onclick="startLevel('akademie')">🦊 Weiter trainieren mit Milli</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+/* ---------- Navigation ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goToStart(){
+  document.getElementById('start-stars').textContent = totalStars()+'/36';
+  document.getElementById('start-score').textContent = state.score;
+  showScreen('screen-start');
+}
+
+function goToMap(){
+  refreshUnlocks();
+  saveState();
+  cloudUpsertProgress();
+  document.getElementById('map-stars').textContent = totalStars()+'/36';
+  document.getElementById('map-score').textContent = state.score;
+  buildLevelGrid();
+  showScreen('screen-map');
+}
+
+function buildLevelGrid(){
+  const grid = document.getElementById('level-grid');
+  grid.innerHTML = '';
+  for(let i=1;i<=12;i++){
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    const unlocked = !!state.unlocked[i];
+    btn.style.background = TABLE_COLORS[i];
+    btn.innerHTML = `
+      <span>${unlocked ? '' : '<span class="lock">🔒</span>'}</span>
+      <span>÷ ${i}</span>
+      <span class="stars">${starString(state.stars[i])}</span>
+    `;
+    if(!unlocked){
+      btn.disabled = true;
+    } else {
+      btn.onclick = ()=>startLevel(i);
+    }
+    grid.appendChild(btn);
+  }
+  const akademieBtn = document.getElementById('akademie-button');
+  const anyMastery = Object.values(state.stars).some(s=>s>=1);
+  akademieBtn.disabled = !anyMastery;
+  akademieBtn.style.opacity = anyMastery ? '1' : '.45';
+  document.getElementById('akademie-hint-map').textContent = akademieHintText();
+}
+
+/* ---------- Quiz ---------- */
+let quiz = null;
+
+function startLevel(level){
+  const isAkademie = level === 'akademie';
+  const questions = isAkademie ? buildAkademieQuestions() : buildQuestions(level);
+  const total = questions.length;
+  quiz = {
+    level, isAkademie,
+    questions,
+    total,
+    index: 0,
+    mistakesFirstTry: 0,
+    answeredIds: new Set(),
+    currentInput: '',
+    streak: 0,
+    lockInput: false
+  };
+  document.getElementById('quiz-title').textContent = isAkademie ? '🦊 Milli Power Akademie' : ('÷ ' + level);
+  const hint = document.getElementById('akademie-hint-quiz');
+  hint.style.display = isAkademie ? 'block' : 'none';
+  if(isAkademie) hint.textContent = akademieHintText();
+  document.getElementById('feedback-msg').textContent = ' ';
+  document.getElementById('streak-line').textContent = '';
+  renderQuestion();
+  showScreen('screen-quiz');
+}
+
+function currentQ(){ return quiz.questions[quiz.index]; }
+
+function renderQuestion(){
+  const q = currentQ();
+  document.getElementById('question-text').textContent = `${q.dividend} ÷ ${q.divisor} =`;
+  document.getElementById('quiz-count').textContent = `Frage ${Math.min(quiz.index+1, quiz.total)} / ${quiz.total}`;
+  const pct = Math.round((quiz.index/quiz.total)*100);
+  document.getElementById('progress-fill').style.width = pct+'%';
+  quiz.currentInput = '';
+  const box = document.getElementById('answer-box');
+  box.textContent = ' ';
+  box.className = 'answer-box';
+  quiz.lockInput = false;
+}
+
+function updateAnswerBox(){
+  const box = document.getElementById('answer-box');
+  box.textContent = quiz.currentInput.length ? quiz.currentInput : ' ';
+}
+
+const PRAISE = ['Super!','Klasse!','Stark!','Weiter so!','Toll gemacht!','Genau richtig!'];
+const ENCOURAGE = ['Fast! Schau nochmal genau hin.','Kein Problem, nächstes Mal klappt es!','Kleiner Fehler, weiter geht’s!'];
+
+function handleKey(k){
+  if(!quiz || quiz.lockInput) return;
+  if(k === 'del'){
+    quiz.currentInput = quiz.currentInput.slice(0,-1);
+    updateAnswerBox();
+    return;
+  }
+  if(k === 'ok'){
+    submitAnswer();
+    return;
+  }
+  if(quiz.currentInput.length < 3){
+    quiz.currentInput += k;
+    updateAnswerBox();
+  }
+}
+
+function submitAnswer(){
+  if(quiz.currentInput === '') return;
+  const q = currentQ();
+  const given = parseInt(quiz.currentInput, 10);
+  const correct = given === q.answer;
+  const box = document.getElementById('answer-box');
+  const feedback = document.getElementById('feedback-msg');
+  const streakLine = document.getElementById('streak-line');
+  quiz.lockInput = true;
+  const updatedFact = updateFact(q.divisor, q.answer, correct);
+  cloudUpsertFact(q.divisor, q.answer, updatedFact);
+  cloudLogAnswer({ divisor:q.divisor, answer:q.answer, dividend:q.dividend, given, correct, mode: quiz.isAkademie ? 'akademie' : 'table' });
+
+  if(correct){
+    box.className = 'answer-box correct';
+    quiz.streak++;
+    state.bestStreak = Math.max(state.bestStreak, quiz.streak);
+    state.score += 10;
+    feedback.textContent = PRAISE[Math.floor(Math.random()*PRAISE.length)];
+    streakLine.textContent = quiz.streak >= 3 ? `🔥 ${quiz.streak} in Folge!` : '';
+    saveState();
+  } else {
+    box.className = 'answer-box wrong';
+    box.textContent = String(q.answer);
+    quiz.streak = 0;
+    streakLine.textContent = '';
+    feedback.textContent = ENCOURAGE[Math.floor(Math.random()*ENCOURAGE.length)] + ` (Richtig: ${q.answer})`;
+    if(!quiz.answeredIds.has(q.dividend+'-'+q.divisor+'-wrong')){
+      quiz.mistakesFirstTry++;
+      quiz.answeredIds.add(q.dividend+'-'+q.divisor+'-wrong');
+    }
+    quiz.questions.push(q);
+    quiz.total++;
+  }
+
+  setTimeout(()=>{
+    quiz.index++;
+    if(quiz.index >= quiz.questions.length){
+      finishLevel();
+    } else {
+      renderQuestion();
+    }
+  }, correct ? 650 : 1300);
+}
+
+document.getElementById('keypad').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.key');
+  if(!btn) return;
+  handleKey(btn.dataset.k);
+});
+
+document.addEventListener('keydown', (e)=>{
+  if(!document.getElementById('screen-quiz').classList.contains('active')) return;
+  if(e.key >= '0' && e.key <= '9') handleKey(e.key);
+  else if(e.key === 'Backspace') handleKey('del');
+  else if(e.key === 'Enter') handleKey('ok');
+});
+
+function finishLevel(){
+  let stars = 3;
+  if(quiz.mistakesFirstTry >= 3) stars = 1;
+  else if(quiz.mistakesFirstTry >= 1) stars = 2;
+
+  if(quiz.isAkademie){
+    document.getElementById('result-mascot').textContent = '🦊';
+    document.getElementById('result-title').textContent = 'Milli Power Akademie geschafft!';
+    document.getElementById('result-stars').textContent = '';
+    document.getElementById('result-detail').textContent =
+      `${quiz.mistakesFirstTry === 0 ? 'Fehlerfrei! Milli ist stolz auf dich!' : quiz.mistakesFirstTry + ' Fehler beim ersten Versuch – Milli merkt sich das für dein nächstes Training!'}`;
+    launchConfetti();
+    saveState();
+    cloudUpsertProgress();
+    showScreen('screen-result');
+    return;
+  }
+
+  const prevStars = state.stars[quiz.level] || 0;
+  if(stars > prevStars) state.stars[quiz.level] = stars;
+  refreshUnlocks();
+  saveState();
+  cloudUpsertProgress();
+
+  document.getElementById('result-mascot').textContent = stars === 3 ? '🎉' : (stars === 2 ? '😊' : '🙂');
+  document.getElementById('result-title').textContent = stars === 3 ? 'Perfekt gemeistert!' : 'Reihe geschafft!';
+  document.getElementById('result-stars').textContent = starString(stars);
+  document.getElementById('result-detail').textContent =
+    quiz.mistakesFirstTry === 0
+      ? `Alle Aufgaben der ÷${quiz.level}-Reihe fehlerfrei gelöst!`
+      : `Du hast die ÷${quiz.level}-Reihe geschafft (${quiz.mistakesFirstTry} Fehler beim ersten Versuch).`;
+
+  launchConfetti();
+  showScreen('screen-result');
+
+  const allMastered = Object.values(state.stars).every(s => s >= 1);
+  if(allMastered){
+    setTimeout(showChampion, 1600);
+  }
+}
+
+function showChampion(){
+  document.getElementById('champ-stars').textContent = totalStars()+'/36';
+  document.getElementById('champ-score').textContent = state.score;
+  const badges = document.getElementById('champion-badges');
+  badges.innerHTML = '';
+  for(let i=1;i<=12;i++){
+    const span = document.createElement('span');
+    span.className = 'badge';
+    span.textContent = state.stars[i] === 3 ? '🏅' : '⭐';
+    badges.appendChild(span);
+  }
+  launchConfetti(50);
+  showScreen('screen-champion');
+}
+
+/* ---------- Confetti ---------- */
+function launchConfetti(count=30){
+  const colors = Object.values(TABLE_COLORS);
+  for(let i=0;i<count;i++){
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.left = Math.random()*100 + 'vw';
+    el.style.background = colors[Math.floor(Math.random()*colors.length)];
+    el.style.animationDuration = (2 + Math.random()*1.5) + 's';
+    el.style.opacity = 0.7 + Math.random()*0.3;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 4000);
+  }
+}
+
+/* ---------- Reset ---------- */
+function resetProgress(){
+  if(confirm('Wirklich den ganzen Fortschritt löschen?')){
+    state = defaultState();
+    saveState();
+    cloudUpsertProgress();
+    goToMap();
+  }
+}
+
+/* ---------- Init ---------- */
+goToStart();
+cloudLoadIntoState().then((loaded)=>{
+  if(loaded && document.getElementById('screen-start').classList.contains('active')){
+    goToStart();
+  }
+});
+</script>
+</body>
+</html>

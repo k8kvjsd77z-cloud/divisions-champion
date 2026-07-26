@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eltern-Dashboard – Milli Power Akademie</title>
+<style>
+  .viz-root{
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --muted:          #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --card:           #ffffff;
+    --seq-blue:       #2a78d6;
+    --good:           #0ca30c;
+    --warning:        #fab219;
+    --serious:        #ec835a;
+    --critical:       #d03b3b;
+    --nodata:         #d8d7d0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root{
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --muted:          #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --card:           #232322;
+      --seq-blue:       #3987e5;
+      --good:           #0ca30c;
+      --warning:        #fab219;
+      --serious:        #ec835a;
+      --critical:       #d03b3b;
+      --nodata:         #3a3a37;
+    }
+  }
+  :root[data-theme="dark"] .viz-root{
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --muted:          #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --card:           #232322;
+    --seq-blue:       #3987e5;
+    --good:           #0ca30c;
+    --warning:        #fab219;
+    --serious:        #ec835a;
+    --critical:       #d03b3b;
+    --nodata:         #3a3a37;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    background:var(--page);
+    color:var(--text-primary);
+    min-height:100vh;
+  }
+  #wrap{max-width:920px; margin:0 auto; padding:24px 18px 60px;}
+
+  h1{font-size:1.6rem; margin:0 0 4px;}
+  h2{font-size:1.15rem; margin:0 0 4px;}
+  p.sub{color:var(--text-secondary); margin:0 0 24px; font-size:.95rem;}
+
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* PIN gate */
+  #pin-card{
+    max-width:340px; margin:15vh auto 0; background:var(--card);
+    border:1px solid var(--border); border-radius:16px; padding:28px 24px;
+    text-align:center;
+  }
+  #pin-card input{
+    font-size:1.6rem; letter-spacing:10px; text-align:center; width:100%;
+    padding:10px; border-radius:10px; border:1px solid var(--border);
+    background:var(--surface-1); color:var(--text-primary); margin:16px 0 8px;
+  }
+  #pin-error{color:var(--critical); font-size:.85rem; min-height:20px;}
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:10px;
+    padding:10px 22px; font-size:1rem; font-weight:600;
+    background:var(--seq-blue); color:#fff;
+  }
+
+  /* Cards / layout */
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; margin-bottom:20px;
+  }
+  .stat-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+    gap:12px; margin-bottom:20px;
+  }
+  .stat-tile{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:14px 16px;
+  }
+  .stat-tile b{display:block; font-size:1.6rem; font-variant-numeric:tabular-nums;}
+  .stat-tile span{font-size:.8rem; color:var(--text-secondary);}
+
+  svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;}
+  .axis-label{fill:var(--muted); font-size:11px;}
+  .value-label{fill:var(--text-primary); font-size:11px; font-weight:600;}
+  .grid-line{stroke:var(--gridline); stroke-width:1;}
+  .baseline{stroke:var(--baseline); stroke-width:1;}
+
+  .bar-rect{cursor:pointer;}
+  .tooltip{
+    position:absolute; pointer-events:none; background:var(--text-primary);
+    color:var(--surface-1); font-size:.8rem; padding:6px 10px; border-radius:8px;
+    transform:translate(-50%,-115%); white-space:nowrap; opacity:0; transition:opacity .1s;
+    z-index:10;
+  }
+  .chart-wrap{position:relative;}
+
+  details.table-toggle{margin-top:8px;}
+  details.table-toggle summary{
+    cursor:pointer; font-size:.82rem; color:var(--text-secondary); user-select:none;
+  }
+  table.data-table{
+    width:100%; border-collapse:collapse; margin-top:10px; font-size:.85rem;
+  }
+  table.data-table th, table.data-table td{
+    text-align:left; padding:5px 8px; border-bottom:1px solid var(--gridline);
+    font-variant-numeric:tabular-nums;
+  }
+  table.data-table th{color:var(--text-secondary); font-weight:600;}
+
+  .weak-list{list-style:none; margin:0; padding:0;}
+  .weak-list li{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 0; border-bottom:1px solid var(--gridline); font-size:.92rem;
+  }
+  .weak-list li:last-child{border-bottom:none;}
+  .weak-list .pct{font-variant-numeric:tabular-nums; font-weight:700; color:var(--critical);}
+
+  .insight-box{
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+    padding:18px 20px; margin-bottom:20px;
+  }
+  .insight-item{margin-bottom:14px;}
+  .insight-item:last-child{margin-bottom:0;}
+  .insight-item .title{font-weight:700; margin-bottom:3px;}
+  .insight-item .detail{color:var(--text-secondary); font-size:.9rem; line-height:1.5;}
+
+  .empty-state{
+    text-align:center; padding:60px 20px; color:var(--text-secondary);
+  }
+  .badge-good{color:var(--good);}
+  .top-row{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;}
+  .refresh-link{font-size:.82rem; color:var(--seq-blue); cursor:pointer; text-decoration:underline;}
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div id="wrap">
+
+  <!-- PIN GATE -->
+  <div class="screen active" id="screen-pin">
+    <div id="pin-card">
+      <div style="font-size:40px;">🦊🔒</div>
+      <h2>Eltern-Dashboard</h2>
+      <p class="sub" style="margin-bottom:0;">Gib den PIN ein, um die Auswertung zu sehen.</p>
+      <input id="pin-input" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
+      <div id="pin-error">&nbsp;</div>
+      <button onclick="checkPin()">Entsperren</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="screen" id="screen-dashboard">
+    <div class="top-row">
+      <div>
+        <h1>🦊 Milli Power Akademie – Auswertung</h1>
+        <p class="sub">Wie deine Tochter bei den Divisionsaufgaben steht.</p>
+      </div>
+      <span class="refresh-link" onclick="loadDashboardData()">Aktualisieren</span>
+    </div>
+
+    <div id="dashboard-content"><!-- wird dynamisch gefüllt --></div>
+  </div>
+
+</div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+/* ---------- PIN Gate ---------- */
+const PIN_SESSION_KEY = 'milliDashboardUnlocked';
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function checkPin(){
+  const input = document.getElementById('pin-input');
+  const pin = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.PARENT_PIN) || '1234';
+  if(input.value === pin){
+    sessionStorage.setItem(PIN_SESSION_KEY, '1');
+    unlockDashboard();
+  } else {
+    document.getElementById('pin-error').textContent = 'Falscher PIN – versuch es nochmal.';
+    input.value = '';
+  }
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('pin-input').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') checkPin();
+  });
+  if(sessionStorage.getItem(PIN_SESSION_KEY) === '1'){
+    unlockDashboard();
+  }
+});
+
+function unlockDashboard(){
+  showScreen('screen-dashboard');
+  loadDashboardData();
+}
+
+/* ---------- Datenabruf ---------- */
+async function loadDashboardData(){
+  const content = document.getElementById('dashboard-content');
+  content.innerHTML = '<p class="sub">Lade Daten…</p>';
+
+  const sb = getSupabaseClient();
+  if(!sb){
+    content.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:40px;">🔌</div>
+        <h2>Noch keine Datenbank verbunden</h2>
+        <p>Trage deine Supabase-Zugangsdaten in <code>config.js</code> ein (siehe README.md),
+        damit hier die Auswertung von den Übungsergebnissen erscheint.</p>
+      </div>`;
+    return;
+  }
+
+  try{
+    const [{ data: facts, error: e1 }, { data: log, error: e2 }, { data: progressRows, error: e3 }] = await Promise.all([
+      sb.from('facts').select('*'),
+      sb.from('answer_log').select('*').order('created_at', { ascending:true }),
+      sb.from('progress').select('*').eq('id', true).limit(1)
+    ]);
+    if(e1) throw e1;
+    if(e2) throw e2;
+    if(e3) throw e3;
+    renderDashboard(facts||[], log||[], (progressRows&&progressRows[0])||null);
+  }catch(err){
+    content.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:40px;">⚠️</div>
+        <h2>Daten konnten nicht geladen werden</h2>
+        <p>${(err&&err.message)||'Unbekannter Fehler'}</p>
+      </div>`;
+  }
+}
+
+/* ---------- Auswertung & Rendering ---------- */
+function renderDashboard(facts, log, progress){
+  const content = document.getElementById('dashboard-content');
+
+  if(facts.length === 0 && log.length === 0){
+    content.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:40px;">🦊</div>
+        <h2>Noch keine Übungsdaten</h2>
+        <p>Sobald deine Tochter im Spiel ein paar Aufgaben löst, erscheint hier die Auswertung.</p>
+      </div>`;
+    return;
+  }
+
+  const totalCorrect = facts.reduce((s,f)=>s+(f.correct_count||0), 0);
+  const totalWrong = facts.reduce((s,f)=>s+(f.wrong_count||0), 0);
+  const totalAttempts = totalCorrect + totalWrong;
+  const accuracy = totalAttempts ? Math.round((totalCorrect/totalAttempts)*100) : null;
+  const masteredCount = facts.filter(f=>f.box>=3).length;
+  const seenCount = facts.filter(f=>f.seen).length;
+
+  const perTable = computePerTableErrorRates(facts);
+  const weakest = computeWeakestFacts(facts, 8);
+  const trend = computeAccuracyTrend(log, 14);
+  const insights = computeInsights(facts, log);
+
+  content.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-tile"><b>${seenCount}/144</b><span>Aufgaben geübt</span></div>
+      <div class="stat-tile"><b>${accuracy===null?'–':accuracy+'%'}</b><span>Trefferquote gesamt</span></div>
+      <div class="stat-tile"><b>${masteredCount}/144</b><span>sicher gemeistert</span></div>
+      <div class="stat-tile"><b>${progress?progress.score:0}</b><span>Punkte im Spiel</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Fehlerquote je Reihe</h2>
+      <p class="sub" style="margin-bottom:12px;">Zeigt, bei welcher Divisions-Reihe (÷1 bis ÷12) tendenziell die meisten Fehler passieren.</p>
+      <div class="chart-wrap" id="bar-chart"></div>
+      ${tableToggle('Reihen-Tabelle anzeigen', perTableTableHTML(perTable))}
+    </div>
+
+    <div class="card">
+      <h2>Genauigkeit der letzten Tage</h2>
+      <p class="sub" style="margin-bottom:12px;">Trefferquote pro Übungstag – hilft zu sehen, ob sich das Üben lohnt.</p>
+      <div class="chart-wrap" id="line-chart"></div>
+      ${tableToggle('Tages-Tabelle anzeigen', trendTableHTML(trend))}
+    </div>
+
+    <div class="card">
+      <h2>Diese Aufgaben bereiten am meisten Mühe</h2>
+      ${weakest.length ? `<ul class="weak-list">${weakest.map(f=>`
+        <li><span>${f.divisor*f.quotient} ÷ ${f.divisor} = ${f.quotient}</span>
+        <span class="pct">${f.wrong} von ${f.wrong+f.correct} falsch</span></li>`).join('')}</ul>`
+        : '<p class="sub">Bisher keine auffälligen Aufgaben – weiter so!</p>'}
+    </div>
+
+    <div class="insight-box">
+      <h2>🔍 Was auffällt</h2>
+      ${insights.length ? insights.map(i=>`
+        <div class="insight-item">
+          <div class="title">${i.title}</div>
+          <div class="detail">${i.detail}</div>
+        </div>`).join('') : '<p class="sub">Noch nicht genug Daten für ein klares Muster – nach ein paar weiteren Übungsrunden zeigt sich hier mehr.</p>'}
+    </div>
+  `;
+
+  renderBarChart(document.getElementById('bar-chart'), perTable);
+  renderLineChart(document.getElementById('line-chart'), trend);
+}
+
+function tableToggle(label, tableHtml){
+  return `<details class="table-toggle"><summary>${label}</summary>${tableHtml}</details>`;
+}
+
+/* ---------- Datenaufbereitung ---------- */
+function computePerTableErrorRates(facts){
+  const byDivisor = {};
+  for(let d=1; d<=12; d++) byDivisor[d] = { correct:0, wrong:0 };
+  facts.forEach(f=>{
+    if(!byDivisor[f.divisor]) return;
+    byDivisor[f.divisor].correct += f.correct_count||0;
+    byDivisor[f.divisor].wrong += f.wrong_count||0;
+  });
+  return Object.keys(byDivisor).map(d=>{
+    const { correct, wrong } = byDivisor[d];
+    const attempts = correct+wrong;
+    return {
+      divisor: Number(d),
+      attempts,
+      errorRate: attempts ? wrong/attempts : null
+    };
+  });
+}
+
+function computeWeakestFacts(facts, limit){
+  return facts
+    .filter(f=>(f.wrong_count||0) > 0)
+    .map(f=>({ divisor:f.divisor, quotient:f.quotient, wrong:f.wrong_count, correct:f.correct_count }))
+    .sort((a,b)=> (b.wrong/(b.wrong+b.correct)) - (a.wrong/(a.wrong+a.correct)) || b.wrong-a.wrong)
+    .slice(0, limit);
+}
+
+function computeAccuracyTrend(log, maxDays){
+  const byDay = {};
+  log.forEach(r=>{
+    const day = (r.created_at||'').slice(0,10);
+    if(!day) return;
+    if(!byDay[day]) byDay[day] = { correct:0, total:0 };
+    byDay[day].total++;
+    if(r.correct) byDay[day].correct++;
+  });
+  const days = Object.keys(byDay).sort();
+  const lastDays = days.slice(-maxDays);
+  return lastDays.map(day=>({
+    day,
+    accuracy: Math.round((byDay[day].correct/byDay[day].total)*100),
+    total: byDay[day].total
+  }));
+}
+
+function computeInsights(facts, log){
+  const insights = [];
+
+  // 1. Fehlbild-Klassifizierung über alle falschen Antworten im Log
+  const tally = {};
+  const example = {};
+  log.forEach(r=>{
+    if(r.correct) return;
+    const cat = classifyMistake({ dividend:r.dividend, divisor:r.divisor, quotient:r.quotient, given_answer:r.given_answer });
+    if(!cat) return;
+    tally[cat] = (tally[cat]||0) + 1;
+    if(!example[cat]) example[cat] = r;
+  });
+  const sortedCats = Object.keys(tally).sort((a,b)=>tally[b]-tally[a]);
+  sortedCats.slice(0,2).forEach(cat=>{
+    if(tally[cat] < 2) return;
+    const label = MISTAKE_LABELS[cat] || MISTAKE_LABELS.sonstige;
+    insights.push({ title: `${label.title} (${tally[cat]}×)`, detail: label.detail(example[cat]) });
+  });
+
+  // 2. Kleine vs. große Ergebnisse (Quotient 1-6 vs 7-12)
+  let lowC=0, lowW=0, highC=0, highW=0;
+  facts.forEach(f=>{
+    if(f.quotient<=6){ lowC+=f.correct_count||0; lowW+=f.wrong_count||0; }
+    else { highC+=f.correct_count||0; highW+=f.wrong_count||0; }
+  });
+  const lowAttempts = lowC+lowW, highAttempts = highC+highW;
+  if(lowAttempts >= 8 && highAttempts >= 8){
+    const lowRate = lowW/lowAttempts, highRate = highW/highAttempts;
+    if(Math.abs(highRate-lowRate) >= 0.12){
+      const harder = highRate > lowRate ? 'größeren' : 'kleineren';
+      const easier = highRate > lowRate ? 'kleineren' : 'größeren';
+      const harderPct = Math.round((highRate>lowRate?highRate:lowRate)*100);
+      const easierPct = Math.round((highRate>lowRate?lowRate:highRate)*100);
+      insights.push({
+        title: `Tut sich bei ${harder} Ergebnissen schwerer`,
+        detail: `Bei Ergebnissen ${harder==='größeren'?'ab 7':'bis 6'} liegt die Fehlerquote bei ${harderPct}%, bei ${easier==='größeren'?'ab 7':'bis 6'} nur bei ${easierPct}%. Kann helfen, gezielt die höheren Ergebnisse zu üben.`
+      });
+    }
+  }
+
+  return insights;
+}
+
+/* ---------- HTML-Tabellen (Barrierefreiheit / Rohdaten) ---------- */
+function perTableTableHTML(perTable){
+  return `<table class="data-table"><thead><tr><th>Reihe</th><th>Versuche</th><th>Fehlerquote</th></tr></thead><tbody>
+    ${perTable.map(t=>`<tr><td>÷${t.divisor}</td><td>${t.attempts}</td><td>${t.errorRate===null?'–':Math.round(t.errorRate*100)+'%'}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+function trendTableHTML(trend){
+  if(!trend.length) return '<p class="sub">Noch keine Tage mit Übungsdaten.</p>';
+  return `<table class="data-table"><thead><tr><th>Datum</th><th>Trefferquote</th><th>Aufgaben</th></tr></thead><tbody>
+    ${trend.map(t=>`<tr><td>${t.day}</td><td>${t.accuracy}%</td><td>${t.total}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+/* ---------- SVG: Balkendiagramm (Fehlerquote je Reihe) ---------- */
+function statusColorForRate(rate){
+  if(rate === null) return 'var(--nodata)';
+  if(rate < 0.10) return 'var(--good)';
+  if(rate < 0.25) return 'var(--warning)';
+  return 'var(--critical)';
+}
+
+function renderBarChart(container, perTable){
+  const w = Math.max(container.clientWidth || 640, 320);
+  const h = 220;
+  const padL = 30, padR = 10, padT = 20, padB = 28;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const n = perTable.length;
+  const gap = 8;
+  const barW = (plotW - gap*(n-1)) / n;
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Fehlerquote je Reihe">`;
+
+  [0,25,50,75,100].forEach(pct=>{
+    const y = padT + plotH - (pct/100)*plotH;
+    svg += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}"/>`;
+  });
+
+  perTable.forEach((t,i)=>{
+    const x = padL + i*(barW+gap);
+    const rate = t.errorRate === null ? 0 : t.errorRate;
+    const barH = t.errorRate === null ? 4 : Math.max(2, rate*plotH);
+    const y = padT + plotH - barH;
+    const color = statusColorForRate(t.errorRate);
+    const label = t.errorRate === null ? '–' : Math.round(t.errorRate*100)+'%';
+    svg += `<rect class="bar-rect" x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}"
+      data-tip="÷${t.divisor}: ${label} Fehler (${t.attempts} Versuche)"/>`;
+    svg += `<text class="value-label" x="${x+barW/2}" y="${y-6}" text-anchor="middle">${label}</text>`;
+    svg += `<text class="axis-label" x="${x+barW/2}" y="${h-8}" text-anchor="middle">÷${t.divisor}</text>`;
+  });
+
+  svg += `<line class="baseline" x1="${padL}" y1="${padT+plotH}" x2="${w-padR}" y2="${padT+plotH}"/>`;
+  svg += `</svg>`;
+  container.innerHTML = svg;
+  attachBarTooltips(container);
+}
+
+function attachBarTooltips(container){
+  const tooltip = document.getElementById('tooltip');
+  container.querySelectorAll('.bar-rect').forEach(rect=>{
+    rect.addEventListener('mousemove', (e)=>{
+      tooltip.textContent = rect.dataset.tip;
+      tooltip.style.left = e.clientX + 'px';
+      tooltip.style.top = e.clientY + window.scrollY + 'px';
+      tooltip.style.opacity = '1';
+    });
+    rect.addEventListener('mouseleave', ()=>{ tooltip.style.opacity = '0'; });
+  });
+}
+
+/* ---------- SVG: Linienchart (Genauigkeit über Zeit) ---------- */
+function renderLineChart(container, trend){
+  if(!trend.length){
+    container.innerHTML = '<p class="sub">Noch keine Tage mit Übungsdaten.</p>';
+    return;
+  }
+  const w = Math.max(container.clientWidth || 640, 320);
+  const h = 220;
+  const padL = 34, padR = 16, padT = 20, padB = 28;
+  const plotW = w - padL - padR, plotH = h - padT - padB;
+  const n = trend.length;
+  const stepX = n > 1 ? plotW/(n-1) : 0;
+
+  const points = trend.map((t,i)=>({
+    x: padL + i*stepX,
+    y: padT + plotH - (t.accuracy/100)*plotH,
+    ...t
+  }));
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Genauigkeit über Zeit">`;
+  [0,25,50,75,100].forEach(pct=>{
+    const y = padT + plotH - (pct/100)*plotH;
+    svg += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}"/>`;
+    svg += `<text class="axis-label" x="${padL-6}" y="${y+3}" text-anchor="end">${pct}%</text>`;
+  });
+
+  const path = points.map((p,i)=> (i===0?'M':'L') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+  svg += `<path d="${path}" fill="none" stroke="var(--seq-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+  points.forEach((p,i)=>{
+    svg += `<circle class="trend-point" cx="${p.x}" cy="${p.y}" r="4" fill="var(--seq-blue)" stroke="var(--surface-1)" stroke-width="2"
+      data-tip="${formatDay(p.day)}: ${p.accuracy}% (${p.total} Aufgaben)"/>`;
+    if(i===0 || i===points.length-1 || n<=7 || i%Math.ceil(n/7)===0){
+      svg += `<text class="axis-label" x="${p.x}" y="${h-8}" text-anchor="middle">${formatDay(p.day)}</text>`;
+    }
+  });
+
+  svg += `<line class="baseline" x1="${padL}" y1="${padT+plotH}" x2="${w-padR}" y2="${padT+plotH}"/>`;
+  svg += `</svg>`;
+  container.innerHTML = svg;
+  attachLineTooltips(container);
+}
+
+function formatDay(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}.${m}.`;
+}
+
+function attachLineTooltips(container){
+  const tooltip = document.getElementById('tooltip');
+  container.querySelectorAll('.trend-point').forEach(pt=>{
+    pt.addEventListener('mousemove', (e)=>{
+      tooltip.textContent = pt.dataset.tip;
+      tooltip.style.left = e.clientX + 'px';
+      tooltip.style.top = e.clientY + window.scrollY + 'px';
+      tooltip.style.opacity = '1';
+    });
+    pt.addEventListener('mouseleave', ()=>{ tooltip.style.opacity = '0'; });
+  });
+}
+</script>
+</body>
+</html>
