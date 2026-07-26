@@ -80,18 +80,19 @@
   .screen{display:none;}
   .screen.active{display:block;}
 
-  /* PIN gate */
-  #pin-card{
+  /* Login / PIN gate */
+  .auth-card{
     max-width:340px; margin:15vh auto 0; background:var(--card);
     border:1px solid var(--border); border-radius:16px; padding:28px 24px;
     text-align:center;
   }
-  #pin-card input{
-    font-size:1.6rem; letter-spacing:10px; text-align:center; width:100%;
+  .auth-card input{
+    font-size:1.1rem; text-align:center; width:100%;
     padding:10px; border-radius:10px; border:1px solid var(--border);
-    background:var(--surface-1); color:var(--text-primary); margin:16px 0 8px;
+    background:var(--surface-1); color:var(--text-primary); margin-bottom:10px;
   }
-  #pin-error{color:var(--critical); font-size:.85rem; min-height:20px;}
+  #pin-input{ font-size:1.6rem; letter-spacing:10px; margin-top:6px; }
+  #pin-error, #login-error{color:var(--critical); font-size:.85rem; min-height:20px;}
   button{
     font-family:inherit; cursor:pointer; border:none; border-radius:10px;
     padding:10px 22px; font-size:1rem; font-weight:600;
@@ -103,6 +104,26 @@
     background:var(--card); border:1px solid var(--border); border-radius:14px;
     padding:18px 20px; margin-bottom:20px;
   }
+  .summary-card{
+    background:linear-gradient(135deg, var(--seq-blue), #1c5cab);
+    color:#fff; border-radius:16px; padding:20px 22px; margin-bottom:20px;
+  }
+  .summary-card h2{color:#fff;}
+  .summary-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:14px; margin-top:12px;
+  }
+  .summary-tile{background:rgba(255,255,255,0.15); border-radius:12px; padding:12px 14px;}
+  .summary-tile b{display:block; font-size:1.4rem;}
+  .summary-tile span{font-size:.78rem; opacity:.9;}
+
+  .tabs{display:flex; gap:8px; margin-bottom:18px;}
+  .tab-btn{
+    flex:1; background:var(--card); color:var(--text-secondary);
+    border:1px solid var(--border); padding:10px; border-radius:10px; font-weight:700;
+  }
+  .tab-btn.active{background:var(--seq-blue); color:#fff; border-color:var(--seq-blue);}
+
   .stat-grid{
     display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
     gap:12px; margin-bottom:20px;
@@ -149,6 +170,7 @@
   }
   .weak-list li:last-child{border-bottom:none;}
   .weak-list .pct{font-variant-numeric:tabular-nums; font-weight:700; color:var(--critical);}
+  .weak-list .pct.skip{color:var(--warning);}
 
   .insight-box{
     background:var(--card); border:1px solid var(--border); border-radius:14px;
@@ -162,7 +184,6 @@
   .empty-state{
     text-align:center; padding:60px 20px; color:var(--text-secondary);
   }
-  .badge-good{color:var(--good);}
   .top-row{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;}
   .refresh-link{font-size:.82rem; color:var(--seq-blue); cursor:pointer; text-decoration:underline;}
 </style>
@@ -171,9 +192,22 @@
 <div class="viz-root">
 <div id="wrap">
 
+  <!-- LOGIN (Supabase Auth) -->
+  <div class="screen active" id="screen-login">
+    <div class="auth-card">
+      <div style="font-size:40px;">🦊🔒</div>
+      <h2>Anmelden</h2>
+      <p class="sub" style="margin-bottom:0;">Familien-Zugang eingeben.</p>
+      <input id="login-username" type="text" placeholder="Benutzername" autocomplete="username" style="margin-top:16px;">
+      <input id="login-password" type="password" placeholder="Passwort" autocomplete="current-password">
+      <div id="login-error">&nbsp;</div>
+      <button onclick="handleFamilyLogin()">Anmelden</button>
+    </div>
+  </div>
+
   <!-- PIN GATE -->
-  <div class="screen active" id="screen-pin">
-    <div id="pin-card">
+  <div class="screen" id="screen-pin">
+    <div class="auth-card">
       <div style="font-size:40px;">🦊🔒</div>
       <h2>Eltern-Dashboard</h2>
       <p class="sub" style="margin-bottom:0;">Gib den PIN ein, um die Auswertung zu sehen.</p>
@@ -188,7 +222,7 @@
     <div class="top-row">
       <div>
         <h1>🦊 Milli Power Akademie – Auswertung</h1>
-        <p class="sub">Wie deine Tochter bei den Divisionsaufgaben steht.</p>
+        <p class="sub">Wie Milli bei Division und Multiplikation steht.</p>
       </div>
       <span class="refresh-link" onclick="loadDashboardData()">Aktualisieren</span>
     </div>
@@ -205,12 +239,34 @@
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <script>
-/* ---------- PIN Gate ---------- */
+/* ---------- Login (Supabase Auth) + PIN Gate ---------- */
 const PIN_SESSION_KEY = 'milliDashboardUnlocked';
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+}
+
+async function handleFamilyLogin(){
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = 'Prüfe...';
+  const { error } = await familySignIn(username, password);
+  if(error){
+    errorEl.textContent = 'Anmeldung fehlgeschlagen. Bitte nochmal versuchen.';
+    return;
+  }
+  errorEl.textContent = ' ';
+  afterLogin();
+}
+
+function afterLogin(){
+  if(sessionStorage.getItem(PIN_SESSION_KEY) === '1'){
+    unlockDashboard();
+  } else {
+    showScreen('screen-pin');
+  }
 }
 
 function checkPin(){
@@ -224,21 +280,35 @@ function checkPin(){
     input.value = '';
   }
 }
-document.addEventListener('DOMContentLoaded', ()=>{
-  document.getElementById('pin-input').addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter') checkPin();
-  });
-  if(sessionStorage.getItem(PIN_SESSION_KEY) === '1'){
-    unlockDashboard();
-  }
-});
 
 function unlockDashboard(){
   showScreen('screen-dashboard');
   loadDashboardData();
 }
 
+document.addEventListener('DOMContentLoaded', async ()=>{
+  document.getElementById('login-password').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') handleFamilyLogin();
+  });
+  document.getElementById('pin-input').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') checkPin();
+  });
+
+  if(!supabaseConfigured()){
+    showScreen('screen-dashboard');
+    loadDashboardData();
+    return;
+  }
+  const loggedIn = await familyHasSession();
+  if(loggedIn){
+    afterLogin();
+  }
+});
+
 /* ---------- Datenabruf ---------- */
+let activeTab = 'division';
+let lastLog = [];
+
 async function loadDashboardData(){
   const content = document.getElementById('dashboard-content');
   content.innerHTML = '<p class="sub">Lade Daten…</p>';
@@ -256,7 +326,7 @@ async function loadDashboardData(){
   }
 
   try{
-    const [{ data: facts, error: e1 }, { data: log, error: e2 }, { data: progressRows, error: e3 }] = await Promise.all([
+    const [{ data: factRows, error: e1 }, { data: log, error: e2 }, { data: progressRows, error: e3 }] = await Promise.all([
       sb.from('facts').select('*'),
       sb.from('answer_log').select('*').order('created_at', { ascending:true }),
       sb.from('progress').select('*').eq('id', true).limit(1)
@@ -264,7 +334,9 @@ async function loadDashboardData(){
     if(e1) throw e1;
     if(e2) throw e2;
     if(e3) throw e3;
-    renderDashboard(facts||[], log||[], (progressRows&&progressRows[0])||null);
+    hydrateStateFromRows(factRows||[], (progressRows&&progressRows[0])||null);
+    lastLog = log||[];
+    renderDashboard();
   }catch(err){
     content.innerHTML = `
       <div class="empty-state">
@@ -275,60 +347,242 @@ async function loadDashboardData(){
   }
 }
 
-/* ---------- Auswertung & Rendering ---------- */
-function renderDashboard(facts, log, progress){
-  const content = document.getElementById('dashboard-content');
+// Befüllt das globale `state` (aus shared.js) mit den geladenen Zeilen, damit
+// dieselben Hilfsfunktionen wie im Spiel (getFact, currentPackageNumber, ...)
+// hier direkt wiederverwendet werden können.
+function hydrateStateFromRows(factRows, progressRow){
+  state = defaultState();
+  factRows.forEach(r=>{
+    if(!state.subjects[r.subject]) return;
+    state.subjects[r.subject].facts[factKey(r.reihe, r.position)] = {
+      box:r.box, correct:r.correct_count, wrong:r.wrong_count, skip:r.skip_count||0, seen:r.seen
+    };
+  });
+  if(progressRow){
+    SUBJECTS.forEach(s=>{
+      if(progressRow.packages && progressRow.packages[s]) state.subjects[s].packages = progressRow.packages[s];
+    });
+    state.score = progressRow.score || 0;
+    state.bestStreak = progressRow.best_streak || 0;
+  }
+}
 
-  if(facts.length === 0 && log.length === 0){
+/* ---------- Auswertung & Rendering ---------- */
+function renderDashboard(){
+  const content = document.getElementById('dashboard-content');
+  const anyFacts = SUBJECTS.some(s=>Object.keys(state.subjects[s].facts).length>0);
+
+  if(!anyFacts && lastLog.length === 0){
     content.innerHTML = `
       <div class="empty-state">
         <div style="font-size:40px;">🦊</div>
         <h2>Noch keine Übungsdaten</h2>
-        <p>Sobald deine Tochter im Spiel ein paar Aufgaben löst, erscheint hier die Auswertung.</p>
+        <p>Sobald Milli im Spiel ein paar Aufgaben löst, erscheint hier die Auswertung.</p>
       </div>`;
     return;
   }
 
-  const totalCorrect = facts.reduce((s,f)=>s+(f.correct_count||0), 0);
-  const totalWrong = facts.reduce((s,f)=>s+(f.wrong_count||0), 0);
-  const totalAttempts = totalCorrect + totalWrong;
-  const accuracy = totalAttempts ? Math.round((totalCorrect/totalAttempts)*100) : null;
-  const masteredCount = facts.filter(f=>f.box>=3).length;
-  const seenCount = facts.filter(f=>f.seen).length;
-
-  const perTable = computePerTableErrorRates(facts);
-  const weakest = computeWeakestFacts(facts, 8);
-  const trend = computeAccuracyTrend(log, 14);
-  const insights = computeInsights(facts, log);
-
   content.innerHTML = `
+    ${compactSummaryHTML()}
+    <div class="tabs">
+      <button class="tab-btn ${activeTab==='division'?'active':''}" onclick="switchTab('division')">➗ Division</button>
+      <button class="tab-btn ${activeTab==='multiplication'?'active':''}" onclick="switchTab('multiplication')">✖️ Multiplikation</button>
+    </div>
+    <div id="subject-content"></div>
+  `;
+  renderSubjectSection(activeTab);
+}
+
+function switchTab(subject){
+  activeTab = subject;
+  renderDashboard();
+}
+
+function compactSummaryHTML(){
+  let totalCorrect=0, totalWrong=0;
+  const perSubjectSummary = SUBJECTS.map(s=>{
+    const facts = allFactsList(s);
+    const correct = facts.reduce((sum,t)=>sum+t.fact.correct,0);
+    const wrong = facts.reduce((sum,t)=>sum+t.fact.wrong,0);
+    totalCorrect += correct; totalWrong += wrong;
+    const flagged = facts.filter(t=>isFlagged(t.fact)).length;
+    return { subject:s, paket: currentPackageNumber(s), stars: totalStars(s), flagged };
+  });
+  const totalAttempts = totalCorrect+totalWrong;
+  const accuracy = totalAttempts ? Math.round((totalCorrect/totalAttempts)*100) : null;
+  const days = new Set(lastLog.map(r=>(r.created_at||'').slice(0,10)).filter(Boolean)).size;
+
+  return `
+    <div class="summary-card">
+      <h2>Auf einen Blick</h2>
+      <div class="summary-grid">
+        <div class="summary-tile"><b>${accuracy===null?'–':accuracy+'%'}</b><span>Trefferquote gesamt</span></div>
+        <div class="summary-tile"><b>${days}</b><span>Übungstage insgesamt</span></div>
+        ${perSubjectSummary.map(p=>`
+          <div class="summary-tile"><b>Paket ${p.paket}</b><span>${SUBJECT_LABELS[p.subject]} · ${p.stars} ⭐${p.flagged?` · ${p.flagged} zu wiederholen`:''}</span></div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function allFactsList(subject){
+  const list = [];
+  for(let r=1;r<=12;r++){
+    for(let p=1;p<=12;p++){
+      const f = getFact(subject, r, p);
+      if(f.seen) list.push(Object.assign(makeTask(subject, r, p), { fact:f }));
+    }
+  }
+  return list;
+}
+
+function computePerReiheErrorRates(subject){
+  const rows = [];
+  for(let r=1; r<=12; r++){
+    let correct=0, wrong=0;
+    for(let p=1;p<=12;p++){
+      const f = getFact(subject, r, p);
+      correct += f.correct||0; wrong += f.wrong||0;
+    }
+    const attempts = correct+wrong;
+    rows.push({ reihe:r, attempts, errorRate: attempts ? wrong/attempts : null });
+  }
+  return rows;
+}
+
+function computeWeakestFacts(subject, limit){
+  return allFactsList(subject)
+    .filter(t=>t.fact.wrong>0)
+    .sort((a,b)=>{
+      const rateA = a.fact.wrong/(a.fact.wrong+a.fact.correct||1);
+      const rateB = b.fact.wrong/(b.fact.wrong+b.fact.correct||1);
+      return (rateB-rateA) || (b.fact.wrong-a.fact.wrong);
+    })
+    .slice(0, limit);
+}
+
+function computeOftenSkipped(subject, limit){
+  return allFactsList(subject)
+    .filter(t=>t.fact.skip >= SKIP_FLAG_THRESHOLD)
+    .sort((a,b)=>b.fact.skip - a.fact.skip)
+    .slice(0, limit);
+}
+
+function computeAccuracyTrend(subject){
+  const filtered = lastLog.filter(r=>r.subject===subject && !r.skipped);
+  const byDay = {};
+  filtered.forEach(r=>{
+    const day = (r.created_at||'').slice(0,10);
+    if(!day) return;
+    if(!byDay[day]) byDay[day] = { correct:0, total:0 };
+    byDay[day].total++;
+    if(r.correct) byDay[day].correct++;
+  });
+  return Object.keys(byDay).sort().map(day=>({
+    day, accuracy: Math.round((byDay[day].correct/byDay[day].total)*100), total: byDay[day].total
+  }));
+}
+
+function computeInsights(subject){
+  const insights = [];
+  const log = lastLog.filter(r=>r.subject===subject && !r.skipped);
+
+  const tally = {}, example = {};
+  log.forEach(r=>{
+    if(r.correct) return;
+    const cat = classifyMistake(r);
+    if(!cat) return;
+    tally[cat] = (tally[cat]||0) + 1;
+    if(!example[cat]) example[cat] = r;
+  });
+  Object.keys(tally).sort((a,b)=>tally[b]-tally[a]).slice(0,2).forEach(cat=>{
+    if(tally[cat] < 2) return;
+    const label = MISTAKE_LABELS[cat] || MISTAKE_LABELS.sonstige;
+    insights.push({ title: `${label.title} (${tally[cat]}×)`, detail: label.detail(example[cat]) });
+  });
+
+  let lowC=0, lowW=0, highC=0, highW=0;
+  allFactsList(subject).forEach(t=>{
+    if(t.position<=6){ lowC+=t.fact.correct; lowW+=t.fact.wrong; }
+    else { highC+=t.fact.correct; highW+=t.fact.wrong; }
+  });
+  const lowAttempts=lowC+lowW, highAttempts=highC+highW;
+  if(lowAttempts>=8 && highAttempts>=8){
+    const lowRate=lowW/lowAttempts, highRate=highW/highAttempts;
+    if(Math.abs(highRate-lowRate)>=0.12){
+      const harder = highRate>lowRate ? 'größeren' : 'kleineren';
+      const easier = highRate>lowRate ? 'kleineren' : 'größeren';
+      const harderPct = Math.round(Math.max(highRate,lowRate)*100);
+      const easierPct = Math.round(Math.min(highRate,lowRate)*100);
+      insights.push({
+        title: `Tut sich bei ${harder} Ergebnissen schwerer`,
+        detail: `Bei Ergebnissen ${harder==='größeren'?'ab 7':'bis 6'} liegt die Fehlerquote bei ${harderPct}%, bei ${easier==='größeren'?'ab 7':'bis 6'} nur bei ${easierPct}%.`
+      });
+    }
+  }
+  const skipCount = allFactsList(subject).reduce((s,t)=>s+t.fact.skip,0);
+  if(skipCount >= 5){
+    insights.push({
+      title: `Überspringt öfter Aufgaben (${skipCount}×)`,
+      detail: 'Häufiges Überspringen kann auf Unsicherheit hindeuten, auch wenn die Aufgabe später richtig gelöst wird - ein Blick auf die "oft übersprungen"-Liste unten lohnt sich.'
+    });
+  }
+  return insights;
+}
+
+function renderSubjectSection(subject){
+  const wrap = document.getElementById('subject-content');
+  const facts = allFactsList(subject);
+  const totalCorrect = facts.reduce((s,t)=>s+t.fact.correct,0);
+  const totalWrong = facts.reduce((s,t)=>s+t.fact.wrong,0);
+  const totalAttempts = totalCorrect+totalWrong;
+  const accuracy = totalAttempts ? Math.round((totalCorrect/totalAttempts)*100) : null;
+  const masteredCount = facts.filter(t=>t.fact.box>=3).length;
+
+  const perReihe = computePerReiheErrorRates(subject);
+  const weakest = computeWeakestFacts(subject, 8);
+  const oftenSkipped = computeOftenSkipped(subject, 8);
+  const trend = computeAccuracyTrend(subject);
+  const insights = computeInsights(subject);
+  const sym = subjectSymbol(subject);
+
+  wrap.innerHTML = `
     <div class="stat-grid">
-      <div class="stat-tile"><b>${seenCount}/144</b><span>Aufgaben geübt</span></div>
-      <div class="stat-tile"><b>${accuracy===null?'–':accuracy+'%'}</b><span>Trefferquote gesamt</span></div>
-      <div class="stat-tile"><b>${masteredCount}/144</b><span>sicher gemeistert</span></div>
-      <div class="stat-tile"><b>${progress?progress.score:0}</b><span>Punkte im Spiel</span></div>
+      <div class="stat-tile"><b>${facts.length}</b><span>Aufgaben geübt</span></div>
+      <div class="stat-tile"><b>${accuracy===null?'–':accuracy+'%'}</b><span>Trefferquote</span></div>
+      <div class="stat-tile"><b>${masteredCount}</b><span>sicher gemeistert</span></div>
+      <div class="stat-tile"><b>Paket ${currentPackageNumber(subject)}</b><span>aktueller Stand</span></div>
     </div>
 
     <div class="card">
       <h2>Fehlerquote je Reihe</h2>
-      <p class="sub" style="margin-bottom:12px;">Zeigt, bei welcher Divisions-Reihe (÷1 bis ÷12) tendenziell die meisten Fehler passieren.</p>
+      <p class="sub" style="margin-bottom:12px;">Zeigt, bei welcher Reihe (${sym}1 bis ${sym}12) tendenziell die meisten Fehler passieren.</p>
       <div class="chart-wrap" id="bar-chart"></div>
-      ${tableToggle('Reihen-Tabelle anzeigen', perTableTableHTML(perTable))}
+      ${tableToggle('Reihen-Tabelle anzeigen', perReiheTableHTML(perReihe, sym))}
     </div>
 
     <div class="card">
-      <h2>Genauigkeit der letzten Tage</h2>
-      <p class="sub" style="margin-bottom:12px;">Trefferquote pro Übungstag – hilft zu sehen, ob sich das Üben lohnt.</p>
+      <h2>Trefferquote über die Zeit</h2>
+      <p class="sub" style="margin-bottom:12px;">Die komplette Übungshistorie, damit du die Entwicklung erkennen kannst.</p>
       <div class="chart-wrap" id="line-chart"></div>
       ${tableToggle('Tages-Tabelle anzeigen', trendTableHTML(trend))}
     </div>
 
     <div class="card">
       <h2>Diese Aufgaben bereiten am meisten Mühe</h2>
-      ${weakest.length ? `<ul class="weak-list">${weakest.map(f=>`
-        <li><span>${f.divisor*f.quotient} ÷ ${f.divisor} = ${f.quotient}</span>
-        <span class="pct">${f.wrong} von ${f.wrong+f.correct} falsch</span></li>`).join('')}</ul>`
+      ${weakest.length ? `<ul class="weak-list">${weakest.map(t=>`
+        <li><span>${t.promptText} ${t.answer}</span>
+        <span class="pct">${t.fact.wrong} von ${t.fact.wrong+t.fact.correct} falsch</span></li>`).join('')}</ul>`
         : '<p class="sub">Bisher keine auffälligen Aufgaben – weiter so!</p>'}
+    </div>
+
+    <div class="card">
+      <h2>Oft übersprungen</h2>
+      ${oftenSkipped.length ? `<ul class="weak-list">${oftenSkipped.map(t=>`
+        <li><span>${t.promptText} ${t.answer}</span>
+        <span class="pct skip">${t.fact.skip}× übersprungen</span></li>`).join('')}</ul>`
+        : '<p class="sub">Bisher keine Aufgabe auffällig oft übersprungen.</p>'}
     </div>
 
     <div class="insight-box">
@@ -341,7 +595,7 @@ function renderDashboard(facts, log, progress){
     </div>
   `;
 
-  renderBarChart(document.getElementById('bar-chart'), perTable);
+  renderBarChart(document.getElementById('bar-chart'), perReihe, sym);
   renderLineChart(document.getElementById('line-chart'), trend);
 }
 
@@ -349,100 +603,9 @@ function tableToggle(label, tableHtml){
   return `<details class="table-toggle"><summary>${label}</summary>${tableHtml}</details>`;
 }
 
-/* ---------- Datenaufbereitung ---------- */
-function computePerTableErrorRates(facts){
-  const byDivisor = {};
-  for(let d=1; d<=12; d++) byDivisor[d] = { correct:0, wrong:0 };
-  facts.forEach(f=>{
-    if(!byDivisor[f.divisor]) return;
-    byDivisor[f.divisor].correct += f.correct_count||0;
-    byDivisor[f.divisor].wrong += f.wrong_count||0;
-  });
-  return Object.keys(byDivisor).map(d=>{
-    const { correct, wrong } = byDivisor[d];
-    const attempts = correct+wrong;
-    return {
-      divisor: Number(d),
-      attempts,
-      errorRate: attempts ? wrong/attempts : null
-    };
-  });
-}
-
-function computeWeakestFacts(facts, limit){
-  return facts
-    .filter(f=>(f.wrong_count||0) > 0)
-    .map(f=>({ divisor:f.divisor, quotient:f.quotient, wrong:f.wrong_count, correct:f.correct_count }))
-    .sort((a,b)=> (b.wrong/(b.wrong+b.correct)) - (a.wrong/(a.wrong+a.correct)) || b.wrong-a.wrong)
-    .slice(0, limit);
-}
-
-function computeAccuracyTrend(log, maxDays){
-  const byDay = {};
-  log.forEach(r=>{
-    const day = (r.created_at||'').slice(0,10);
-    if(!day) return;
-    if(!byDay[day]) byDay[day] = { correct:0, total:0 };
-    byDay[day].total++;
-    if(r.correct) byDay[day].correct++;
-  });
-  const days = Object.keys(byDay).sort();
-  const lastDays = days.slice(-maxDays);
-  return lastDays.map(day=>({
-    day,
-    accuracy: Math.round((byDay[day].correct/byDay[day].total)*100),
-    total: byDay[day].total
-  }));
-}
-
-function computeInsights(facts, log){
-  const insights = [];
-
-  // 1. Fehlbild-Klassifizierung über alle falschen Antworten im Log
-  const tally = {};
-  const example = {};
-  log.forEach(r=>{
-    if(r.correct) return;
-    const cat = classifyMistake({ dividend:r.dividend, divisor:r.divisor, quotient:r.quotient, given_answer:r.given_answer });
-    if(!cat) return;
-    tally[cat] = (tally[cat]||0) + 1;
-    if(!example[cat]) example[cat] = r;
-  });
-  const sortedCats = Object.keys(tally).sort((a,b)=>tally[b]-tally[a]);
-  sortedCats.slice(0,2).forEach(cat=>{
-    if(tally[cat] < 2) return;
-    const label = MISTAKE_LABELS[cat] || MISTAKE_LABELS.sonstige;
-    insights.push({ title: `${label.title} (${tally[cat]}×)`, detail: label.detail(example[cat]) });
-  });
-
-  // 2. Kleine vs. große Ergebnisse (Quotient 1-6 vs 7-12)
-  let lowC=0, lowW=0, highC=0, highW=0;
-  facts.forEach(f=>{
-    if(f.quotient<=6){ lowC+=f.correct_count||0; lowW+=f.wrong_count||0; }
-    else { highC+=f.correct_count||0; highW+=f.wrong_count||0; }
-  });
-  const lowAttempts = lowC+lowW, highAttempts = highC+highW;
-  if(lowAttempts >= 8 && highAttempts >= 8){
-    const lowRate = lowW/lowAttempts, highRate = highW/highAttempts;
-    if(Math.abs(highRate-lowRate) >= 0.12){
-      const harder = highRate > lowRate ? 'größeren' : 'kleineren';
-      const easier = highRate > lowRate ? 'kleineren' : 'größeren';
-      const harderPct = Math.round((highRate>lowRate?highRate:lowRate)*100);
-      const easierPct = Math.round((highRate>lowRate?lowRate:highRate)*100);
-      insights.push({
-        title: `Tut sich bei ${harder} Ergebnissen schwerer`,
-        detail: `Bei Ergebnissen ${harder==='größeren'?'ab 7':'bis 6'} liegt die Fehlerquote bei ${harderPct}%, bei ${easier==='größeren'?'ab 7':'bis 6'} nur bei ${easierPct}%. Kann helfen, gezielt die höheren Ergebnisse zu üben.`
-      });
-    }
-  }
-
-  return insights;
-}
-
-/* ---------- HTML-Tabellen (Barrierefreiheit / Rohdaten) ---------- */
-function perTableTableHTML(perTable){
+function perReiheTableHTML(perReihe, sym){
   return `<table class="data-table"><thead><tr><th>Reihe</th><th>Versuche</th><th>Fehlerquote</th></tr></thead><tbody>
-    ${perTable.map(t=>`<tr><td>÷${t.divisor}</td><td>${t.attempts}</td><td>${t.errorRate===null?'–':Math.round(t.errorRate*100)+'%'}</td></tr>`).join('')}
+    ${perReihe.map(t=>`<tr><td>${sym}${t.reihe}</td><td>${t.attempts}</td><td>${t.errorRate===null?'–':Math.round(t.errorRate*100)+'%'}</td></tr>`).join('')}
   </tbody></table>`;
 }
 function trendTableHTML(trend){
@@ -460,12 +623,12 @@ function statusColorForRate(rate){
   return 'var(--critical)';
 }
 
-function renderBarChart(container, perTable){
+function renderBarChart(container, perReihe, sym){
   const w = Math.max(container.clientWidth || 640, 320);
   const h = 220;
   const padL = 30, padR = 10, padT = 20, padB = 28;
   const plotW = w - padL - padR, plotH = h - padT - padB;
-  const n = perTable.length;
+  const n = perReihe.length;
   const gap = 8;
   const barW = (plotW - gap*(n-1)) / n;
 
@@ -476,7 +639,7 @@ function renderBarChart(container, perTable){
     svg += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}"/>`;
   });
 
-  perTable.forEach((t,i)=>{
+  perReihe.forEach((t,i)=>{
     const x = padL + i*(barW+gap);
     const rate = t.errorRate === null ? 0 : t.errorRate;
     const barH = t.errorRate === null ? 4 : Math.max(2, rate*plotH);
@@ -484,9 +647,9 @@ function renderBarChart(container, perTable){
     const color = statusColorForRate(t.errorRate);
     const label = t.errorRate === null ? '–' : Math.round(t.errorRate*100)+'%';
     svg += `<rect class="bar-rect" x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}"
-      data-tip="÷${t.divisor}: ${label} Fehler (${t.attempts} Versuche)"/>`;
+      data-tip="${sym}${t.reihe}: ${label} Fehler (${t.attempts} Versuche)"/>`;
     svg += `<text class="value-label" x="${x+barW/2}" y="${y-6}" text-anchor="middle">${label}</text>`;
-    svg += `<text class="axis-label" x="${x+barW/2}" y="${h-8}" text-anchor="middle">÷${t.divisor}</text>`;
+    svg += `<text class="axis-label" x="${x+barW/2}" y="${h-8}" text-anchor="middle">${sym}${t.reihe}</text>`;
   });
 
   svg += `<line class="baseline" x1="${padL}" y1="${padT+plotH}" x2="${w-padR}" y2="${padT+plotH}"/>`;
@@ -537,10 +700,11 @@ function renderLineChart(container, trend){
   const path = points.map((p,i)=> (i===0?'M':'L') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
   svg += `<path d="${path}" fill="none" stroke="var(--seq-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
 
+  const labelEvery = Math.max(1, Math.ceil(n/7));
   points.forEach((p,i)=>{
     svg += `<circle class="trend-point" cx="${p.x}" cy="${p.y}" r="4" fill="var(--seq-blue)" stroke="var(--surface-1)" stroke-width="2"
       data-tip="${formatDay(p.day)}: ${p.accuracy}% (${p.total} Aufgaben)"/>`;
-    if(i===0 || i===points.length-1 || n<=7 || i%Math.ceil(n/7)===0){
+    if(i===0 || i===points.length-1 || i%labelEvery===0){
       svg += `<text class="axis-label" x="${p.x}" y="${h-8}" text-anchor="middle">${formatDay(p.day)}</text>`;
     }
   });

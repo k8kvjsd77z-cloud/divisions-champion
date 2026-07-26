@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Divisions-Champion</title>
+<title>Milli Power Akademie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -29,212 +29,121 @@
     padding:16px;
     overflow-x:hidden;
   }
-  #app{
-    width:100%;
-    max-width:640px;
-    position:relative;
-  }
+  #app{ width:100%; max-width:640px; position:relative; }
   .screen{display:none;}
   .screen.active{display:block; animation:fadein .25s ease;}
   @keyframes fadein{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
 
   .card{
-    background:var(--card);
-    border-radius:var(--radius);
-    box-shadow:var(--shadow);
-    padding:28px 24px;
-    text-align:center;
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:28px 24px; text-align:center;
   }
-  h1{font-size:2rem; margin:0 0 6px; font-weight:800;}
-  h2{font-size:1.4rem; margin:0 0 14px; font-weight:700;}
-  p.sub{margin:0 0 20px; opacity:.75; font-size:1.05rem;}
-  .mascot{font-size:64px; line-height:1; margin-bottom:8px;}
+  h1{font-size:1.8rem; margin:0 0 6px; font-weight:800;}
+  h2{font-size:1.3rem; margin:0 0 14px; font-weight:700;}
+  p.sub{margin:0 0 20px; opacity:.75; font-size:1.02rem;}
+  .mascot{font-size:60px; line-height:1; margin-bottom:8px;}
 
   button{
-    font-family:inherit;
-    cursor:pointer;
-    border:none;
-    border-radius:16px;
-    font-weight:700;
-    transition:transform .12s ease, box-shadow .12s ease;
+    font-family:inherit; cursor:pointer; border:none; border-radius:16px;
+    font-weight:700; transition:transform .12s ease, box-shadow .12s ease;
   }
   button:active{transform:scale(0.94);}
 
   .btn-primary{
-    background:#ff6b6b;
-    color:#fff;
-    font-size:1.2rem;
-    padding:16px 30px;
-    box-shadow:0 6px 0 #d84f4f;
+    background:#ff6b6b; color:#fff; font-size:1.15rem; padding:16px 30px;
+    box-shadow:0 6px 0 #d84f4f; width:100%;
   }
   .btn-primary:active{box-shadow:0 2px 0 #d84f4f;}
 
-  .btn-secondary{
-    background:#eef1f8;
-    color:var(--ink);
-    font-size:1rem;
-    padding:10px 18px;
-    margin-top:10px;
-  }
-
-  .stat-row{
-    display:flex;
-    justify-content:center;
-    gap:22px;
-    margin:14px 0 22px;
-    flex-wrap:wrap;
-  }
-  .stat{
-    background:#f5f6fb;
-    border-radius:14px;
-    padding:10px 16px;
-    min-width:90px;
-  }
+  .stat-row{ display:flex; justify-content:center; gap:22px; margin:14px 0 22px; flex-wrap:wrap; }
+  .stat{ background:#f5f6fb; border-radius:14px; padding:10px 16px; min-width:90px; }
   .stat b{display:block; font-size:1.3rem;}
   .stat span{font-size:.8rem; opacity:.6;}
 
-  /* Level map */
-  .level-grid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:14px;
-    margin:18px 0;
+  .login-input{
+    width:100%; font-size:1.05rem; padding:12px 14px; border-radius:12px;
+    border:1px solid #dcdfe8; background:#f5f6fb; color:var(--ink);
+    margin-bottom:10px; font-family:inherit;
   }
-  .level-btn{
-    position:relative;
-    aspect-ratio:1/1;
-    border-radius:18px;
-    color:#fff;
-    font-size:1.4rem;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    gap:4px;
-    box-shadow:0 5px 0 rgba(0,0,0,0.18);
+  .login-error{color:#c62828; font-size:.9rem; min-height:20px; margin-bottom:6px;}
+
+  /* Subject select */
+  .subject-btn{
+    display:block; width:100%; padding:22px; margin-bottom:14px;
+    border-radius:20px; color:#fff; font-size:1.3rem; text-align:left;
+    box-shadow:0 6px 0 rgba(0,0,0,0.18);
   }
-  .level-btn:disabled{
-    background:#cfd3e0 !important;
-    color:#8a8fa3;
-    box-shadow:0 5px 0 rgba(0,0,0,0.08);
-    cursor:not-allowed;
-  }
-  .level-btn .stars{font-size:.85rem; letter-spacing:1px;}
-  .level-btn .lock{position:absolute; top:8px; right:10px; font-size:1rem;}
-  .akademie-btn{
-    margin-top:6px;
-    width:100%;
-    background:linear-gradient(120deg,#7c4dff,#536dfe);
-    color:#fff;
-    padding:16px;
-    font-size:1.15rem;
-    box-shadow:0 6px 0 #4638c2;
-  }
-  .akademie-hint{
-    font-size:.85rem;
-    background:#fff3e0;
-    border-radius:12px;
-    padding:9px 14px;
-    margin:12px 0;
-    color:#8a5a00;
-    font-weight:700;
-    line-height:1.4;
+  .subject-btn small{display:block; font-size:.85rem; font-weight:600; opacity:.9; margin-top:4px;}
+  .subject-division{background:linear-gradient(120deg,#274c9b,#2196c9);}
+  .subject-multiplication{background:linear-gradient(120deg,#e63946,#f3722c);}
+
+  .footer-link{
+    margin-top:18px; font-size:.8rem; opacity:.5; text-decoration:underline;
+    cursor:pointer; display:inline-block;
   }
 
+  /* Hub: package path */
+  .package-path{ display:flex; flex-direction:column; gap:10px; margin:16px 0; max-height:300px; overflow-y:auto; padding-right:4px; }
+  .package-tile{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 18px; border-radius:16px; color:#fff; font-size:1.05rem;
+    box-shadow:0 4px 0 rgba(0,0,0,0.15);
+  }
+  .package-tile.locked{ background:#cfd3e0 !important; color:#8a8fa3; box-shadow:0 4px 0 rgba(0,0,0,0.06); cursor:not-allowed; }
+  .package-tile .stars{font-size:.85rem;}
+
+  .hub-btn{
+    width:100%; padding:16px; margin-top:10px; font-size:1.1rem; color:#fff;
+  }
+  .btn-akademie{ background:linear-gradient(120deg,#7c4dff,#536dfe); box-shadow:0 6px 0 #4638c2; }
+  .btn-sonder{ background:linear-gradient(120deg,#ff8a3d,#ff5e7e); box-shadow:0 6px 0 #c94a63; position:relative; }
+  .sonder-badge{
+    position:absolute; top:-8px; right:-8px; background:#c62828; color:#fff;
+    border-radius:50%; width:26px; height:26px; font-size:.8rem;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,.3);
+  }
+  .hint-box{
+    font-size:.85rem; background:#fff3e0; border-radius:12px; padding:9px 14px;
+    margin:12px 0; color:#8a5a00; font-weight:700; line-height:1.4;
+  }
+
+  /* Sonder list */
+  .sonder-list{ list-style:none; margin:0 0 16px; padding:0; text-align:left; max-height:260px; overflow-y:auto; }
+  .sonder-list li{
+    display:flex; justify-content:space-between; padding:8px 4px;
+    border-bottom:1px solid #eef1f8; font-size:.95rem;
+  }
+  .sonder-list .tag{font-size:.75rem; color:#c62828; font-weight:700;}
+
   /* Quiz screen */
-  .quiz-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-    font-size:.95rem;
-    opacity:.75;
-  }
-  .progress-bar{
-    height:10px;
-    background:#eef1f8;
-    border-radius:8px;
-    overflow:hidden;
-    margin-bottom:22px;
-  }
-  .progress-fill{
-    height:100%;
-    background:#4caf50;
-    width:0%;
-    transition:width .35s ease;
-  }
-  .question{
-    font-size:2.6rem;
-    font-weight:800;
-    margin:10px 0 6px;
-  }
-  .streak-line{
-    min-height:24px;
-    font-size:1rem;
-    font-weight:700;
-    color:#ff9800;
-    margin-bottom:10px;
-  }
+  .quiz-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:.9rem; opacity:.75; }
+  .progress-bar{ height:10px; background:#eef1f8; border-radius:8px; overflow:hidden; margin-bottom:18px; }
+  .progress-fill{ height:100%; background:#4caf50; width:0%; transition:width .35s ease; }
+  .question{ font-size:2.5rem; font-weight:800; margin:8px 0 6px; }
+  .streak-line{ min-height:24px; font-size:1rem; font-weight:700; color:#ff9800; margin-bottom:8px; }
   .answer-box{
-    font-size:2rem;
-    font-weight:800;
-    background:#f5f6fb;
-    border-radius:16px;
-    padding:12px;
-    min-height:48px;
-    margin:0 auto 18px;
-    max-width:180px;
-    letter-spacing:2px;
+    font-size:2rem; font-weight:800; background:#f5f6fb; border-radius:16px;
+    padding:12px; min-height:48px; margin:0 auto 14px; max-width:180px; letter-spacing:2px;
   }
   .answer-box.correct{background:#d5f5db; color:#1f8b3b;}
   .answer-box.wrong{background:#ffdcdc; color:#c62828;}
+  .answer-box.skipped{background:#e0e6f5; color:#33334d;}
 
-  .keypad{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:10px;
-    max-width:280px;
-    margin:0 auto;
-  }
-  .key{
-    background:#eef1f8;
-    color:var(--ink);
-    font-size:1.4rem;
-    padding:16px 0;
-  }
+  .keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:280px; margin:0 auto; }
+  .key{ background:#eef1f8; color:var(--ink); font-size:1.4rem; padding:14px 0; }
   .key.del{background:#ffe0b2; color:#e65100;}
-  .key.ok{background:#4caf50; color:#fff; grid-column:span 1;}
-
-  .feedback-msg{
-    min-height:28px;
-    font-size:1.15rem;
-    font-weight:700;
-    margin-top:12px;
+  .key.ok{background:#4caf50; color:#fff;}
+  .skip-btn{
+    max-width:280px; margin:10px auto 0; display:block; width:100%;
+    background:#eef1f8; color:var(--ink); font-size:.95rem; padding:10px;
   }
+  .feedback-msg{ min-height:26px; font-size:1.1rem; font-weight:700; margin-top:10px; }
 
-  /* Confetti */
   .confetti{
-    position:fixed;
-    top:-20px;
-    width:10px;
-    height:16px;
-    z-index:999;
-    border-radius:2px;
-    pointer-events:none;
-    animation:fall linear forwards;
+    position:fixed; top:-20px; width:10px; height:16px; z-index:999;
+    border-radius:2px; pointer-events:none; animation:fall linear forwards;
   }
-  @keyframes fall{
-    to{ transform:translateY(110vh) rotate(360deg); }
-  }
-
-  .footer-link{
-    margin-top:18px;
-    font-size:.8rem;
-    opacity:.45;
-    text-decoration:underline;
-    cursor:pointer;
-    display:inline-block;
-  }
+  @keyframes fall{ to{ transform:translateY(110vh) rotate(360deg); } }
 
   .badge-row{display:flex; justify-content:center; gap:10px; margin:14px 0; flex-wrap:wrap;}
   .badge{font-size:1.6rem;}
@@ -243,33 +152,68 @@
 <body>
 <div id="app">
 
-  <!-- START SCREEN -->
-  <div class="screen active" id="screen-start">
+  <!-- LOGIN SCREEN -->
+  <div class="screen active" id="screen-login">
     <div class="card">
-      <div class="mascot">🦊</div>
-      <h1>Divisions-Champion</h1>
-      <p class="sub">Übe die Divisionsaufgaben ÷1 bis ÷12 und sammle Sterne! Milli, deine Trainerin, merkt sich dabei, was du schon kannst.</p>
-      <div class="stat-row">
-        <div class="stat"><b id="start-stars">0/36</b><span>Sterne</span></div>
-        <div class="stat"><b id="start-score">0</b><span>Punkte</span></div>
-      </div>
-      <button class="btn-primary" onclick="goToMap()">🚀 Spiel starten</button>
+      <div class="mascot">🦊🔒</div>
+      <h1>Milli Power Akademie</h1>
+      <p class="sub">Bitte anmelden, um zu spielen.</p>
+      <input class="login-input" id="login-username" type="text" placeholder="Benutzername" autocomplete="username">
+      <input class="login-input" id="login-password" type="password" placeholder="Passwort" autocomplete="current-password">
+      <div class="login-error" id="login-error">&nbsp;</div>
+      <button class="btn-primary" onclick="handleFamilyLogin()">Anmelden</button>
     </div>
   </div>
 
-  <!-- LEVEL MAP -->
-  <div class="screen" id="screen-map">
+  <!-- SUBJECT SELECT -->
+  <div class="screen" id="screen-subject">
     <div class="card">
-      <h2>Wähle eine Reihe</h2>
-      <div class="stat-row">
-        <div class="stat"><b id="map-stars">0/36</b><span>Sterne</span></div>
-        <div class="stat"><b id="map-score">0</b><span>Punkte</span></div>
-      </div>
-      <div class="level-grid" id="level-grid"></div>
-      <div class="akademie-hint" id="akademie-hint-map"></div>
-      <button class="akademie-btn" id="akademie-button" onclick="startLevel('akademie')">🦊 Milli Power Akademie</button>
-      <br>
+      <div class="mascot">🦊</div>
+      <h1>Hallo Milli!</h1>
+      <p class="sub">Papalino ist dein Trainer. Was möchtest du heute üben?</p>
+      <button class="subject-btn subject-division" onclick="chooseSubject('division')">
+        ➗ Division
+        <small id="subject-stat-division">Paket 1</small>
+      </button>
+      <button class="subject-btn subject-multiplication" onclick="chooseSubject('multiplication')">
+        ✖️ Multiplikation
+        <small id="subject-stat-multiplication">Paket 1</small>
+      </button>
       <span class="footer-link" onclick="resetProgress()">Fortschritt zurücksetzen</span>
+    </div>
+  </div>
+
+  <!-- SUBJECT HUB -->
+  <div class="screen" id="screen-hub">
+    <div class="card">
+      <h2 id="hub-title">Division</h2>
+      <div class="stat-row">
+        <div class="stat"><b id="hub-stars">0</b><span>Sterne</span></div>
+        <div class="stat"><b id="hub-score">0</b><span>Punkte</span></div>
+      </div>
+      <div class="package-path" id="package-path"></div>
+
+      <div class="hint-box" id="akademie-hint"></div>
+      <button class="hub-btn btn-akademie" onclick="startAkademie()">🦊 Milli Power Akademie</button>
+      <button class="hub-btn btn-sonder" onclick="goToSonderListe()">
+        🎯 Sonderbereich: Wiederholung
+        <span class="sonder-badge" id="sonder-badge" style="display:none;">0</span>
+      </button>
+      <br>
+      <span class="footer-link" onclick="goToSubjectSelect()">Anderes Fach wählen</span>
+    </div>
+  </div>
+
+  <!-- SONDERBEREICH LISTE -->
+  <div class="screen" id="screen-sonder">
+    <div class="card">
+      <div class="mascot">🎯</div>
+      <h2>Sonderbereich</h2>
+      <p class="sub" id="sonder-intro">Diese Aufgaben brauchen noch etwas Übung.</p>
+      <ul class="sonder-list" id="sonder-list"></ul>
+      <div id="sonder-buttons"></div>
+      <br>
+      <span class="footer-link" onclick="goToHub()">Zurück</span>
     </div>
   </div>
 
@@ -277,11 +221,11 @@
   <div class="screen" id="screen-quiz">
     <div class="card">
       <div class="quiz-top">
-        <span id="quiz-title">÷ 1</span>
-        <span id="quiz-count">Frage 1 / 12</span>
+        <span id="quiz-title">Paket 1</span>
+        <span id="quiz-count">Frage 1 / 10</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-      <div class="akademie-hint" id="akademie-hint-quiz" style="display:none;"></div>
+      <div class="hint-box" id="quiz-hint" style="display:none;"></div>
 
       <div class="question" id="question-text">6 ÷ 2 =</div>
       <div class="streak-line" id="streak-line"></div>
@@ -302,8 +246,9 @@
         <button class="key" data-k="0">0</button>
         <button class="key ok" data-k="ok">✓</button>
       </div>
+      <button class="skip-btn" onclick="handleSkip()">⏭ Überspringen</button>
       <br>
-      <span class="footer-link" onclick="goToMap()">Zurück zur Übersicht</span>
+      <span class="footer-link" onclick="goToHub()">Abbrechen</span>
     </div>
   </div>
 
@@ -313,23 +258,8 @@
       <div class="mascot" id="result-mascot">🎉</div>
       <h2 id="result-title">Super gemacht!</h2>
       <div id="result-stars" style="font-size:2.4rem; margin:10px 0;"></div>
-      <p class="sub" id="result-detail">Du hast die Reihe geschafft.</p>
-      <button class="btn-primary" onclick="goToMap()">Weiter zur Übersicht</button>
-    </div>
-  </div>
-
-  <!-- CHAMPION SCREEN -->
-  <div class="screen" id="screen-champion">
-    <div class="card">
-      <div class="mascot">🏆</div>
-      <h1>Divisions-Champion!</h1>
-      <p class="sub">Du hast alle 12 Reihen gemeistert!</p>
-      <div class="badge-row" id="champion-badges"></div>
-      <div class="stat-row">
-        <div class="stat"><b id="champ-stars">36/36</b><span>Sterne</span></div>
-        <div class="stat"><b id="champ-score">0</b><span>Punkte</span></div>
-      </div>
-      <button class="btn-primary" onclick="startLevel('akademie')">🦊 Weiter trainieren mit Milli</button>
+      <p class="sub" id="result-detail">Geschafft.</p>
+      <button class="btn-primary" onclick="goToHub()">Weiter</button>
     </div>
   </div>
 
@@ -340,65 +270,110 @@
 <script src="shared.js"></script>
 <script>
 /* ---------- Navigation ---------- */
+let currentSubject = 'division';
+
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-function goToStart(){
-  document.getElementById('start-stars').textContent = totalStars()+'/36';
-  document.getElementById('start-score').textContent = state.score;
-  showScreen('screen-start');
+function goToSubjectSelect(){
+  saveState(); cloudUpsertProgress();
+  document.getElementById('subject-stat-division').textContent =
+    `Paket ${currentPackageNumber('division')} · ${totalStars('division')} ⭐`;
+  document.getElementById('subject-stat-multiplication').textContent =
+    `Paket ${currentPackageNumber('multiplication')} · ${totalStars('multiplication')} ⭐`;
+  showScreen('screen-subject');
 }
 
-function goToMap(){
-  refreshUnlocks();
-  saveState();
-  cloudUpsertProgress();
-  document.getElementById('map-stars').textContent = totalStars()+'/36';
-  document.getElementById('map-score').textContent = state.score;
-  buildLevelGrid();
-  showScreen('screen-map');
+function chooseSubject(subject){
+  currentSubject = subject;
+  goToHub();
 }
 
-function buildLevelGrid(){
-  const grid = document.getElementById('level-grid');
-  grid.innerHTML = '';
-  for(let i=1;i<=12;i++){
-    const btn = document.createElement('button');
-    btn.className = 'level-btn';
-    const unlocked = !!state.unlocked[i];
-    btn.style.background = TABLE_COLORS[i];
-    btn.innerHTML = `
-      <span>${unlocked ? '' : '<span class="lock">🔒</span>'}</span>
-      <span>÷ ${i}</span>
-      <span class="stars">${starString(state.stars[i])}</span>
+function goToHub(){
+  saveState(); cloudUpsertProgress();
+  document.getElementById('hub-title').textContent = SUBJECT_LABELS[currentSubject];
+  document.getElementById('hub-stars').textContent = totalStars(currentSubject);
+  document.getElementById('hub-score').textContent = state.score;
+  renderPackagePath();
+  document.getElementById('akademie-hint').textContent = akademieHintText(currentSubject);
+
+  const blocks = buildSonderblöcke(currentSubject);
+  const flaggedCount = blocks.reduce((s,b)=>s+b.length, 0);
+  const badge = document.getElementById('sonder-badge');
+  badge.style.display = flaggedCount > 0 ? 'flex' : 'none';
+  badge.textContent = flaggedCount;
+
+  showScreen('screen-hub');
+}
+
+function renderPackagePath(){
+  const path = document.getElementById('package-path');
+  path.innerHTML = '';
+  const current = currentPackageNumber(currentSubject);
+  const packages = state.subjects[currentSubject].packages;
+  const showUpTo = current + 2;
+  for(let n=1; n<=showUpTo; n++){
+    const done = packages[n] && packages[n].completed;
+    const locked = n > current;
+    const tile = document.createElement('div');
+    tile.className = 'package-tile' + (locked ? ' locked' : '');
+    if(!locked) tile.style.background = TABLE_COLORS[((n-1)%12)+1];
+    tile.innerHTML = `
+      <span>${locked ? '🔒 ' : ''}Paket ${n}</span>
+      <span class="stars">${done ? starString(packages[n].stars) : (locked ? '' : 'neu')}</span>
     `;
-    if(!unlocked){
-      btn.disabled = true;
-    } else {
-      btn.onclick = ()=>startLevel(i);
-    }
-    grid.appendChild(btn);
+    if(!locked) tile.onclick = ()=>startPaket(n);
+    path.appendChild(tile);
   }
-  const akademieBtn = document.getElementById('akademie-button');
-  const anyMastery = Object.values(state.stars).some(s=>s>=1);
-  akademieBtn.disabled = !anyMastery;
-  akademieBtn.style.opacity = anyMastery ? '1' : '.45';
-  document.getElementById('akademie-hint-map').textContent = akademieHintText();
 }
 
 /* ---------- Quiz ---------- */
 let quiz = null;
 
-function startLevel(level){
-  const isAkademie = level === 'akademie';
-  const questions = isAkademie ? buildAkademieQuestions() : buildQuestions(level);
-  const total = questions.length;
-  quiz = {
-    level, isAkademie,
+function startPaket(packageNumber){
+  const questions = buildGuidedPackage(currentSubject, packageNumber);
+  beginQuiz({
+    mode: 'paket',
+    packageNumber,
     questions,
-    total,
+    title: `Paket ${packageNumber}`,
+    hint: null
+  });
+}
+
+function startAkademie(){
+  const questions = buildAkademieQuestions(currentSubject);
+  beginQuiz({
+    mode: 'akademie',
+    questions,
+    title: '🦊 Milli Power Akademie',
+    hint: akademieHintText(currentSubject)
+  });
+}
+
+let activeSonderBlock = [];
+function startSonderblock(blockIndex){
+  const blocks = buildSonderblöcke(currentSubject);
+  const block = blocks[blockIndex] || [];
+  activeSonderBlock = block;
+  const questions = block.map(t=>({ subject:t.subject, reihe:t.reihe, position:t.position, answer:t.answer, promptText:t.promptText }));
+  beginQuiz({
+    mode: 'sonderblock',
+    questions,
+    title: `🎯 Sonderblock ${blockIndex+1}`,
+    hint: 'Diese Aufgaben hast du zuletzt öfter falsch oder übersprungen. Papalino ist sicher: du schaffst das, Milli!'
+  });
+}
+
+function beginQuiz(cfg){
+  quiz = {
+    subject: currentSubject,
+    mode: cfg.mode,
+    packageNumber: cfg.packageNumber,
+    questions: cfg.questions,
+    total: cfg.questions.length,
     index: 0,
     mistakesFirstTry: 0,
     answeredIds: new Set(),
@@ -406,11 +381,11 @@ function startLevel(level){
     streak: 0,
     lockInput: false
   };
-  document.getElementById('quiz-title').textContent = isAkademie ? '🦊 Milli Power Akademie' : ('÷ ' + level);
-  const hint = document.getElementById('akademie-hint-quiz');
-  hint.style.display = isAkademie ? 'block' : 'none';
-  if(isAkademie) hint.textContent = akademieHintText();
-  document.getElementById('feedback-msg').textContent = ' ';
+  document.getElementById('quiz-title').textContent = cfg.title;
+  const hintEl = document.getElementById('quiz-hint');
+  if(cfg.hint){ hintEl.style.display = 'block'; hintEl.textContent = cfg.hint; }
+  else { hintEl.style.display = 'none'; }
+  document.getElementById('feedback-msg').textContent = ' ';
   document.getElementById('streak-line').textContent = '';
   renderQuestion();
   showScreen('screen-quiz');
@@ -420,23 +395,23 @@ function currentQ(){ return quiz.questions[quiz.index]; }
 
 function renderQuestion(){
   const q = currentQ();
-  document.getElementById('question-text').textContent = `${q.dividend} ÷ ${q.divisor} =`;
+  document.getElementById('question-text').textContent = q.promptText;
   document.getElementById('quiz-count').textContent = `Frage ${Math.min(quiz.index+1, quiz.total)} / ${quiz.total}`;
   const pct = Math.round((quiz.index/quiz.total)*100);
   document.getElementById('progress-fill').style.width = pct+'%';
   quiz.currentInput = '';
   const box = document.getElementById('answer-box');
-  box.textContent = ' ';
+  box.textContent = ' ';
   box.className = 'answer-box';
   quiz.lockInput = false;
 }
 
 function updateAnswerBox(){
   const box = document.getElementById('answer-box');
-  box.textContent = quiz.currentInput.length ? quiz.currentInput : ' ';
+  box.textContent = quiz.currentInput.length ? quiz.currentInput : ' ';
 }
 
-const PRAISE = ['Super!','Klasse!','Stark!','Weiter so!','Toll gemacht!','Genau richtig!'];
+const PRAISE = ['Super, Milli!','Klasse gemacht!','Stark!','Weiter so!','Toll gemacht!','Genau richtig!'];
 const ENCOURAGE = ['Fast! Schau nochmal genau hin.','Kein Problem, nächstes Mal klappt es!','Kleiner Fehler, weiter geht’s!'];
 
 function handleKey(k){
@@ -456,6 +431,38 @@ function handleKey(k){
   }
 }
 
+function advanceQueue(requeue, q){
+  if(requeue){
+    quiz.questions.push(q);
+    quiz.total++;
+  }
+  setTimeout(()=>{
+    quiz.index++;
+    if(quiz.index >= quiz.questions.length){
+      finishRound();
+    } else {
+      renderQuestion();
+    }
+  }, requeue ? 1200 : 650);
+}
+
+function handleSkip(){
+  if(!quiz || quiz.lockInput) return;
+  const q = currentQ();
+  quiz.lockInput = true;
+  const updatedFact = skipFact(quiz.subject, q.reihe, q.position);
+  cloudUpsertFact(quiz.subject, q.reihe, q.position, updatedFact);
+  cloudLogAnswer({ subject:quiz.subject, reihe:q.reihe, position:q.position, given:null, correct:false, skipped:true, mode:quiz.mode });
+
+  const box = document.getElementById('answer-box');
+  box.className = 'answer-box skipped';
+  box.textContent = '⏭';
+  document.getElementById('feedback-msg').textContent = 'Übersprungen – kommt später nochmal dran.';
+  document.getElementById('streak-line').textContent = '';
+  saveState();
+  advanceQueue(true, q);
+}
+
 function submitAnswer(){
   if(quiz.currentInput === '') return;
   const q = currentQ();
@@ -465,9 +472,9 @@ function submitAnswer(){
   const feedback = document.getElementById('feedback-msg');
   const streakLine = document.getElementById('streak-line');
   quiz.lockInput = true;
-  const updatedFact = updateFact(q.divisor, q.answer, correct);
-  cloudUpsertFact(q.divisor, q.answer, updatedFact);
-  cloudLogAnswer({ divisor:q.divisor, answer:q.answer, dividend:q.dividend, given, correct, mode: quiz.isAkademie ? 'akademie' : 'table' });
+  const updatedFact = updateFact(quiz.subject, q.reihe, q.position, correct);
+  cloudUpsertFact(quiz.subject, q.reihe, q.position, updatedFact);
+  cloudLogAnswer({ subject:quiz.subject, reihe:q.reihe, position:q.position, given, correct, skipped:false, mode:quiz.mode });
 
   if(correct){
     box.className = 'answer-box correct';
@@ -477,28 +484,20 @@ function submitAnswer(){
     feedback.textContent = PRAISE[Math.floor(Math.random()*PRAISE.length)];
     streakLine.textContent = quiz.streak >= 3 ? `🔥 ${quiz.streak} in Folge!` : '';
     saveState();
+    advanceQueue(false, q);
   } else {
     box.className = 'answer-box wrong';
     box.textContent = String(q.answer);
     quiz.streak = 0;
     streakLine.textContent = '';
     feedback.textContent = ENCOURAGE[Math.floor(Math.random()*ENCOURAGE.length)] + ` (Richtig: ${q.answer})`;
-    if(!quiz.answeredIds.has(q.dividend+'-'+q.divisor+'-wrong')){
+    const dedupeKey = q.reihe+'-'+q.position+'-wrong';
+    if(!quiz.answeredIds.has(dedupeKey)){
       quiz.mistakesFirstTry++;
-      quiz.answeredIds.add(q.dividend+'-'+q.divisor+'-wrong');
+      quiz.answeredIds.add(dedupeKey);
     }
-    quiz.questions.push(q);
-    quiz.total++;
+    advanceQueue(true, q);
   }
-
-  setTimeout(()=>{
-    quiz.index++;
-    if(quiz.index >= quiz.questions.length){
-      finishLevel();
-    } else {
-      renderQuestion();
-    }
-  }, correct ? 650 : 1300);
 }
 
 document.getElementById('keypad').addEventListener('click', (e)=>{
@@ -514,17 +513,41 @@ document.addEventListener('keydown', (e)=>{
   else if(e.key === 'Enter') handleKey('ok');
 });
 
-function finishLevel(){
+function finishRound(){
   let stars = 3;
   if(quiz.mistakesFirstTry >= 3) stars = 1;
   else if(quiz.mistakesFirstTry >= 1) stars = 2;
 
-  if(quiz.isAkademie){
+  if(quiz.mode === 'paket'){
+    const packages = state.subjects[quiz.subject].packages;
+    const prevStars = (packages[quiz.packageNumber] && packages[quiz.packageNumber].stars) || 0;
+    packages[quiz.packageNumber] = { completed:true, stars: Math.max(stars, prevStars) };
+    saveState();
+    cloudUpsertProgress();
+
+    const reachedAllReihen = quiz.packageNumber === 5;
+    document.getElementById('result-mascot').textContent = reachedAllReihen ? '🏆' : (stars === 3 ? '🎉' : (stars === 2 ? '😊' : '🙂'));
+    document.getElementById('result-title').textContent = reachedAllReihen
+      ? 'Meilenstein! Alle Reihen freigeschaltet!'
+      : (stars === 3 ? 'Perfekt gemeistert!' : 'Paket geschafft!');
+    document.getElementById('result-stars').textContent = starString(stars);
+    document.getElementById('result-detail').textContent = reachedAllReihen
+      ? `Papalino ist stolz: Milli übt jetzt schon in allen Reihen! (${quiz.mistakesFirstTry} Fehler beim ersten Versuch)`
+      : (quiz.mistakesFirstTry === 0
+          ? `Paket ${quiz.packageNumber} fehlerfrei gelöst!`
+          : `Paket ${quiz.packageNumber} geschafft (${quiz.mistakesFirstTry} Fehler beim ersten Versuch).`);
+    launchConfetti(reachedAllReihen ? 60 : 30);
+    showScreen('screen-result');
+    return;
+  }
+
+  if(quiz.mode === 'akademie'){
     document.getElementById('result-mascot').textContent = '🦊';
     document.getElementById('result-title').textContent = 'Milli Power Akademie geschafft!';
     document.getElementById('result-stars').textContent = '';
-    document.getElementById('result-detail').textContent =
-      `${quiz.mistakesFirstTry === 0 ? 'Fehlerfrei! Milli ist stolz auf dich!' : quiz.mistakesFirstTry + ' Fehler beim ersten Versuch – Milli merkt sich das für dein nächstes Training!'}`;
+    document.getElementById('result-detail').textContent = quiz.mistakesFirstTry === 0
+      ? 'Fehlerfrei! Papalino ist stolz auf dich, Milli!'
+      : `${quiz.mistakesFirstTry} Fehler beim ersten Versuch – Papalino merkt sich das für dein nächstes Training!`;
     launchConfetti();
     saveState();
     cloudUpsertProgress();
@@ -532,42 +555,53 @@ function finishLevel(){
     return;
   }
 
-  const prevStars = state.stars[quiz.level] || 0;
-  if(stars > prevStars) state.stars[quiz.level] = stars;
-  refreshUnlocks();
+  // sonderblock
+  const remainingBlocks = buildSonderblöcke(quiz.subject);
+  const stillOpen = remainingBlocks.reduce((s,b)=>s+b.length, 0);
+  document.getElementById('result-mascot').textContent = stillOpen === 0 ? '🏆' : '🎯';
+  document.getElementById('result-title').textContent = stillOpen === 0 ? 'Kein Rückstand mehr!' : 'Sonderblock geschafft!';
+  document.getElementById('result-stars').textContent = '';
+  document.getElementById('result-detail').textContent = stillOpen === 0
+    ? 'Alle bisher schwierigen Aufgaben sind jetzt gemeistert. Stark, Milli!'
+    : `Noch ${stillOpen} Aufgabe(n) im Sonderbereich – weiter geht's, wann immer du magst.`;
+  launchConfetti(stillOpen === 0 ? 60 : 30);
   saveState();
   cloudUpsertProgress();
-
-  document.getElementById('result-mascot').textContent = stars === 3 ? '🎉' : (stars === 2 ? '😊' : '🙂');
-  document.getElementById('result-title').textContent = stars === 3 ? 'Perfekt gemeistert!' : 'Reihe geschafft!';
-  document.getElementById('result-stars').textContent = starString(stars);
-  document.getElementById('result-detail').textContent =
-    quiz.mistakesFirstTry === 0
-      ? `Alle Aufgaben der ÷${quiz.level}-Reihe fehlerfrei gelöst!`
-      : `Du hast die ÷${quiz.level}-Reihe geschafft (${quiz.mistakesFirstTry} Fehler beim ersten Versuch).`;
-
-  launchConfetti();
   showScreen('screen-result');
-
-  const allMastered = Object.values(state.stars).every(s => s >= 1);
-  if(allMastered){
-    setTimeout(showChampion, 1600);
-  }
 }
 
-function showChampion(){
-  document.getElementById('champ-stars').textContent = totalStars()+'/36';
-  document.getElementById('champ-score').textContent = state.score;
-  const badges = document.getElementById('champion-badges');
-  badges.innerHTML = '';
-  for(let i=1;i<=12;i++){
-    const span = document.createElement('span');
-    span.className = 'badge';
-    span.textContent = state.stars[i] === 3 ? '🏅' : '⭐';
-    badges.appendChild(span);
+/* ---------- Sonderbereich ---------- */
+function goToSonderListe(){
+  const blocks = buildSonderblöcke(currentSubject);
+  const sym = subjectSymbol(currentSubject);
+  const list = document.getElementById('sonder-list');
+  const intro = document.getElementById('sonder-intro');
+  const buttonsWrap = document.getElementById('sonder-buttons');
+  list.innerHTML = '';
+  buttonsWrap.innerHTML = '';
+
+  const allFlagged = blocks.flat();
+  if(allFlagged.length === 0){
+    intro.textContent = 'Super, aktuell gibt es nichts zu wiederholen!';
+  } else {
+    intro.textContent = `${allFlagged.length} Aufgabe(n) brauchen noch Übung, in ${blocks.length} Block/Blöcken.`;
+    allFlagged.slice(0, 30).forEach(t=>{
+      const li = document.createElement('li');
+      const tagText = (t.fact.wrong>0 && t.fact.skip>=2) ? 'Fehler + übersprungen'
+        : (t.fact.wrong>0 ? 'Fehler' : 'oft übersprungen');
+      li.innerHTML = `<span>${t.promptText} ${t.answer}</span><span class="tag">${tagText}</span>`;
+      list.appendChild(li);
+    });
+    blocks.forEach((block, i)=>{
+      const btn = document.createElement('button');
+      btn.className = 'btn-primary';
+      btn.style.marginTop = '8px';
+      btn.textContent = `Block ${i+1} starten (${block.length})`;
+      btn.onclick = ()=>startSonderblock(i);
+      buttonsWrap.appendChild(btn);
+    });
   }
-  launchConfetti(50);
-  showScreen('screen-champion');
+  showScreen('screen-sonder');
 }
 
 /* ---------- Confetti ---------- */
@@ -591,17 +625,48 @@ function resetProgress(){
     state = defaultState();
     saveState();
     cloudUpsertProgress();
-    goToMap();
+    goToSubjectSelect();
+  }
+}
+
+/* ---------- Login ---------- */
+document.getElementById('login-password').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') handleFamilyLogin();
+});
+
+async function handleFamilyLogin(){
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = 'Prüfe...';
+  const { error } = await familySignIn(username, password);
+  if(error){
+    errorEl.textContent = 'Anmeldung fehlgeschlagen. Bitte nochmal versuchen.';
+    return;
+  }
+  errorEl.textContent = ' ';
+  await enterApp();
+}
+
+async function enterApp(){
+  goToSubjectSelect();
+  await cloudLoadIntoState();
+  if(document.getElementById('screen-subject').classList.contains('active')){
+    goToSubjectSelect();
   }
 }
 
 /* ---------- Init ---------- */
-goToStart();
-cloudLoadIntoState().then((loaded)=>{
-  if(loaded && document.getElementById('screen-start').classList.contains('active')){
-    goToStart();
+(async function init(){
+  if(!supabaseConfigured()){
+    await enterApp();
+    return;
   }
-});
+  const loggedIn = await familyHasSession();
+  if(loggedIn){
+    await enterApp();
+  }
+})();
 </script>
 </body>
 </html>

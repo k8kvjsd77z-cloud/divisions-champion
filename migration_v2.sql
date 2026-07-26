@@ -1,12 +1,19 @@
 -- ============================================================
--- Milli Power Akademie – Supabase-Schema (v2: Division + Multiplikation)
--- Einmal komplett im SQL-Editor deines Supabase-Projekts ausführen
--- (Dashboard → SQL Editor → New query → einfügen → Run).
--- Für ein bereits bestehendes Projekt mit dem alten (v1) Schema:
--- benutze stattdessen migration_v2.sql.
+-- Migration v2: Division + Multiplikation, Login-Pflicht, Überspringen
+-- Nur einmal ausführen. Ersetzt die alten Tabellen komplett (die bisher
+-- nur minimal befüllt waren - falls du zwischenzeitlich schon "echt"
+-- geübt hast, geht dieser Test-Fortschritt dabei verloren).
+--
+-- Führe VORHER schon aus (falls noch nicht geschehen):
+-- 1. Authentication → Users → Add user (siehe README.md, "Login einrichten")
+-- 2. Authentication → Providers → Email → "Allow new users to sign up" AUS
 -- ============================================================
 
-create table if not exists facts (
+drop table if exists facts cascade;
+drop table if exists answer_log cascade;
+drop table if exists progress cascade;
+
+create table facts (
   subject text not null check (subject in ('division','multiplication')),
   reihe smallint not null check (reihe between 1 and 12),
   position smallint not null check (position between 1 and 12),
@@ -19,7 +26,7 @@ create table if not exists facts (
   primary key (subject, reihe, position)
 );
 
-create table if not exists answer_log (
+create table answer_log (
   id bigint generated always as identity primary key,
   created_at timestamptz not null default now(),
   subject text not null check (subject in ('division','multiplication')),
@@ -31,7 +38,7 @@ create table if not exists answer_log (
   mode text not null default 'paket'
 );
 
-create table if not exists progress (
+create table progress (
   id boolean primary key default true,
   packages jsonb not null default '{}'::jsonb,
   score integer not null default 0,
@@ -44,13 +51,6 @@ alter table facts enable row level security;
 alter table answer_log enable row level security;
 alter table progress enable row level security;
 
--- Nur angemeldete Nutzer dürfen lesen/schreiben. Das Spiel und das
--- Eltern-Dashboard melden sich mit einem einzigen gemeinsamen Familien-
--- Konto an (siehe README.md, "Login einrichten") - ohne dieses Login kommt
--- niemand an die Daten, selbst wenn der öffentliche anon-Key bekannt ist.
--- Wichtig: die Registrierung neuer Nutzer muss in Supabase deaktiviert sein
--- (Authentication → Providers → Email → "Allow new users to sign up" AUS),
--- sonst könnte sich theoretisch jemand selbst ein Konto anlegen.
 create policy "authenticated only facts" on facts
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated only answer_log" on answer_log

@@ -1,5 +1,5 @@
 /* ============================================================
-   Divisions-Champion – Konfiguration
+   Milli Power Akademie – Konfiguration
    ============================================================
    Trage hier deine eigenen Supabase-Zugangsdaten ein, siehe README.md
    ("1. Supabase-Projekt anlegen"). Solange hier noch "HIER-EINTRAGEN"
