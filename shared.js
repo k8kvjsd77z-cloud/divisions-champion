@@ -15,8 +15,10 @@ const STORAGE_KEY = 'milliPowerAkademieProgress_v2';
 const PACKAGE_SIZE = 10;
 const AKADEMIE_ROUND_LENGTH = 16;
 const SONDERBLOCK_SIZE = 10;
-// Ab welchem Paket wie viele Reihen im Mix sind (Paket 6+ nutzt immer alle 12).
-const PACKAGE_REIHEN_CAPS = [3, 5, 7, 9, 12];
+// Genau 10 feste Curriculum-Pakete (÷/× 1 bis 12 werden bis Paket 10 komplett
+// eingeführt). Paket 11 und danach sind automatisch Wiederholungs-Pakete.
+const CURRICULUM_PACKAGE_COUNT = 10;
+const PACKAGE_REIHEN_CAPS = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 // Gedächtnis-Gewichte je Box-Stufe: 0 = wird gerade noch geübt, 4 = sicher gemeistert.
 const BOX_WEIGHTS = { 0:10, 1:6, 2:3, 3:1.5, 4:0.4 };
 const UNSEEN_WEIGHT = 7;
@@ -76,6 +78,30 @@ function reihenPoolForPackage(packageNumber){
 
 function unlockedReihen(subject){
   return reihenPoolForPackage(currentPackageNumber(subject));
+}
+
+function isCurriculumPackage(packageNumber){
+  return packageNumber <= CURRICULUM_PACKAGE_COUNT;
+}
+
+// Wiederholungs-Pakete (11+) haben keinen festen Block-Index - die auffälligen
+// Aufgaben verschieben sich ja bei jeder Antwort. Jedes Wiederholungs-Paket
+// greift deshalb einfach immer den *aktuell* schlechtesten Block (Index 0)
+// der live berechneten Sonderblöcke, egal welche Paket-Nummer gerade dran ist.
+function packageHasContent(subject, packageNumber){
+  if(isCurriculumPackage(packageNumber)) return true;
+  return buildSonderblöcke(subject).length > 0;
+}
+
+function buildReviewPackageQuestions(subject){
+  const blocks = buildSonderblöcke(subject);
+  const block = blocks[0] || [];
+  return block.map(t=>makeTask(t.subject, t.reihe, t.position));
+}
+
+function buildPackageQuestions(subject, packageNumber){
+  if(isCurriculumPackage(packageNumber)) return buildGuidedPackage(subject, packageNumber);
+  return buildReviewPackageQuestions(subject);
 }
 
 function totalStars(subject){

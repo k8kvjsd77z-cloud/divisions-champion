@@ -52,12 +52,31 @@ Supabase-Datenbank (Schritte unten).
 
 ## 4. Login einrichten (schützt die Daten vor Fremdzugriff)
 
+Es gibt bewusst **zwei getrennte Zugänge** - Milli kennt nur ihren eigenen, nicht
+den fürs Eltern-Dashboard:
+
+| Zugang | Benutzt für | Benutzername | E-Mail (technisch, intern) |
+|---|---|---|---|
+| Milli | Spiel (`index.html`) | `Milli` | `milli@family.local` |
+| Familie | Eltern-Dashboard (`dashboard.html`) | `FamKed` | `famked@family.local` |
+
+Beide Zugänge legst du gleich an:
+
 1. Im Supabase-Dashboard: **Authentication → Users → Add user → Create new user**.
-   - E-Mail: `<benutzername>@family.local` (also z.B. bei Benutzername "FamKed" → `famked@family.local`)
-   - Passwort: dein gewähltes Passwort (mindestens 6 Zeichen)
+   - E-Mail: `<benutzername>@family.local` (also z.B. bei Benutzername "Milli" → `milli@family.local`)
+   - Passwort: das jeweils gewählte Passwort (mindestens 6 Zeichen)
    - Häkchen bei **"Auto Confirm User"** setzen → **Create user**.
+   - Das Ganze ein zweites Mal für den jeweils anderen Zugang wiederholen.
 2. **Authentication → Providers → Email** → Schalter **"Allow new users to sign up"** deaktivieren (damit sich niemand sonst selbst einen Zugang anlegen kann).
-3. Im Spiel (`index.html`) und im Dashboard (`dashboard.html`) meldest du dich beim ersten Öffnen einmal mit Benutzername + Passwort an - danach bleibt die Anmeldung im Browser gespeichert, es muss nicht jedes Mal neu eingegeben werden.
+3. Im Spiel (`index.html`) meldet sich Milli mit **ihrem** Zugang an, im Dashboard
+   (`dashboard.html`) meldest du dich mit dem **Familien**-Zugang an - danach
+   bleibt die Anmeldung im jeweiligen Browser gespeichert, es muss nicht jedes
+   Mal neu eingegeben werden.
+
+> ℹ️ Beide Zugänge haben in der Datenbank technisch dieselben Rechte (lesen +
+> schreiben), das Login trennt nur, wer die App überhaupt öffnen kann. Die
+> eigentliche Trennung "Milli sieht das Dashboard nicht" kommt zusätzlich über
+> den PIN in `config.js` (`PARENT_PIN`), den nur du kennst.
 
 ## 5. Auf GitHub veröffentlichen
 
@@ -85,14 +104,14 @@ Das übernimmst du selbst über deinen eigenen GitHub-Account:
 **Zwei Fächer, getrennt:** Division und Multiplikation werden nie gemischt -
 Milli wählt zu Beginn, welches Fach sie üben möchte.
 
-**Geführte Zehnerpakete:** Statt starr eine Reihe nach der anderen zu üben,
-mischt jedes 10-Aufgaben-Paket bewusst mehrere Reihen (nie zwei gleiche
+**Genau 10 Curriculum-Pakete:** Statt starr eine Reihe nach der anderen zu
+üben, mischt jedes 10-Aufgaben-Paket bewusst mehrere Reihen (nie zwei gleiche
 Reihen direkt hintereinander) - das sorgt für Abwechslung statt stumpfem
 Auswendiglernen einer einzelnen Reihe. Welche Reihen im Mix sind, wächst mit
-dem Fortschritt: Paket 1 nutzt Reihen 1-3, Paket 2 → 1-5, Paket 3 → 1-7,
-Paket 4 → 1-9, ab Paket 5 alle 1-12. Innerhalb eines Pakets gilt:
-- Ergebnisse 11 und 12 kommen hier nie vor (die tauchen nur gelegentlich in
-  der Milli Power Akademie auf).
+jedem Paket um eine weitere Reihe: Paket 1 nutzt Reihen 1-3, Paket 2 → 1-4,
+… bis Paket 10 → alle 1-12 im Mix. Innerhalb eines Pakets gilt:
+- Ergebnisse 11 und 12 kommen in den Curriculum-Paketen nie vor (die tauchen
+  nur gelegentlich in der Milli Power Akademie auf).
 - Eine Aufgabe kann übersprungen werden und kommt später im selben Paket
   nochmal dran.
 - Eine falsch beantwortete Aufgabe kann beliebig oft neu versucht werden.
@@ -100,18 +119,21 @@ Paket 4 → 1-9, ab Paket 5 alle 1-12. Innerhalb eines Pakets gilt:
   beantwortet wurden (übersprungene/falsche zählen erst, wenn sie am Ende
   richtig gelöst sind) - dafür gibt's Konfetti und 1-3 Sterne.
 
+**Ab Paket 11: automatische Wiederholungs-Pakete.** Sobald alle 10
+Curriculum-Pakete geschafft sind, werden weitere Pakete (11, 12, 13, …)
+automatisch aus den Aufgaben gebaut, bei denen es zuletzt Fehler gab oder die
+oft übersprungen wurden - ebenfalls maximal 10 Aufgaben pro Paket, mit
+denselben Regeln (überspringen, beliebig oft neu versuchen). Ist gerade
+nichts zu wiederholen, zeigt die Paket-Übersicht "✅ Kein Rückstand" statt
+eines neuen Pakets - sobald wieder etwas auffällt (z.B. beim Üben in der
+Akademie), erscheint automatisch ein neues Wiederholungs-Paket.
+
 **Milli Power Akademie:** Endloses, gewichtetes Üben über alle bisher
 eingeführten Reihen. Jede der bis zu 144 Aufgaben pro Fach hat eine
 "Box-Stufe" 0-4: richtig beantwortet → Stufe rauf, falsch → deutlich runter,
 übersprungen erhöht zusätzlich das Auswahl-Gewicht. Schwache/oft übersprungene
 Aufgaben kommen häufiger dran, sicher gemeisterte nur noch selten (zur
 Auffrischung) - aber nie ganz raus.
-
-**Sonderbereich (Wiederholung):** Zeigt transparent genau die Aufgaben, bei
-denen es zuletzt Fehler gab oder die oft übersprungen wurden - in Blöcken von
-maximal 10 Aufgaben (bei mehr als 10 auffälligen Aufgaben gibt es mehrere
-Blöcke). Eine Aufgabe verschwindet aus dieser Liste, sobald sie wieder sicher
-sitzt.
 
 ## Was das Eltern-Dashboard zeigt
 

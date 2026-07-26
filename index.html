@@ -90,30 +90,18 @@
     box-shadow:0 4px 0 rgba(0,0,0,0.15);
   }
   .package-tile.locked{ background:#cfd3e0 !important; color:#8a8fa3; box-shadow:0 4px 0 rgba(0,0,0,0.06); cursor:not-allowed; }
+  .package-tile.review{ background:linear-gradient(120deg,#ff8a3d,#ff5e7e) !important; }
+  .package-tile.caught-up{ background:#d5f5db !important; color:#1f8b3b; box-shadow:0 4px 0 rgba(0,0,0,0.06); cursor:default; }
   .package-tile .stars{font-size:.85rem;}
 
   .hub-btn{
     width:100%; padding:16px; margin-top:10px; font-size:1.1rem; color:#fff;
   }
   .btn-akademie{ background:linear-gradient(120deg,#7c4dff,#536dfe); box-shadow:0 6px 0 #4638c2; }
-  .btn-sonder{ background:linear-gradient(120deg,#ff8a3d,#ff5e7e); box-shadow:0 6px 0 #c94a63; position:relative; }
-  .sonder-badge{
-    position:absolute; top:-8px; right:-8px; background:#c62828; color:#fff;
-    border-radius:50%; width:26px; height:26px; font-size:.8rem;
-    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,.3);
-  }
   .hint-box{
     font-size:.85rem; background:#fff3e0; border-radius:12px; padding:9px 14px;
     margin:12px 0; color:#8a5a00; font-weight:700; line-height:1.4;
   }
-
-  /* Sonder list */
-  .sonder-list{ list-style:none; margin:0 0 16px; padding:0; text-align:left; max-height:260px; overflow-y:auto; }
-  .sonder-list li{
-    display:flex; justify-content:space-between; padding:8px 4px;
-    border-bottom:1px solid #eef1f8; font-size:.95rem;
-  }
-  .sonder-list .tag{font-size:.75rem; color:#c62828; font-weight:700;}
 
   /* Quiz screen */
   .quiz-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:.9rem; opacity:.75; }
@@ -195,25 +183,8 @@
 
       <div class="hint-box" id="akademie-hint"></div>
       <button class="hub-btn btn-akademie" onclick="startAkademie()">🦊 Milli Power Akademie</button>
-      <button class="hub-btn btn-sonder" onclick="goToSonderListe()">
-        🎯 Sonderbereich: Wiederholung
-        <span class="sonder-badge" id="sonder-badge" style="display:none;">0</span>
-      </button>
       <br>
       <span class="footer-link" onclick="goToSubjectSelect()">Anderes Fach wählen</span>
-    </div>
-  </div>
-
-  <!-- SONDERBEREICH LISTE -->
-  <div class="screen" id="screen-sonder">
-    <div class="card">
-      <div class="mascot">🎯</div>
-      <h2>Sonderbereich</h2>
-      <p class="sub" id="sonder-intro">Diese Aufgaben brauchen noch etwas Übung.</p>
-      <ul class="sonder-list" id="sonder-list"></ul>
-      <div id="sonder-buttons"></div>
-      <br>
-      <span class="footer-link" onclick="goToHub()">Zurück</span>
     </div>
   </div>
 
@@ -298,14 +269,33 @@ function goToHub(){
   document.getElementById('hub-score').textContent = state.score;
   renderPackagePath();
   document.getElementById('akademie-hint').textContent = akademieHintText(currentSubject);
-
-  const blocks = buildSonderblöcke(currentSubject);
-  const flaggedCount = blocks.reduce((s,b)=>s+b.length, 0);
-  const badge = document.getElementById('sonder-badge');
-  badge.style.display = flaggedCount > 0 ? 'flex' : 'none';
-  badge.textContent = flaggedCount;
-
   showScreen('screen-hub');
+}
+
+function packageTileLabel(n){
+  return n > CURRICULUM_PACKAGE_COUNT ? `Wiederholung ${n - CURRICULUM_PACKAGE_COUNT}` : `Paket ${n}`;
+}
+
+function appendPackageTile(path, n, current, packages){
+  const done = packages[n] && packages[n].completed;
+  const locked = n > current;
+  const isReview = n > CURRICULUM_PACKAGE_COUNT;
+  const tile = document.createElement('div');
+  tile.className = 'package-tile' + (locked ? ' locked' : (isReview ? ' review' : ''));
+  if(!locked && !isReview) tile.style.background = TABLE_COLORS[((n-1)%12)+1];
+  tile.innerHTML = `
+    <span>${locked ? '🔒 ' : ''}${packageTileLabel(n)}</span>
+    <span class="stars">${done ? starString(packages[n].stars) : (locked ? '' : 'neu')}</span>
+  `;
+  if(!locked) tile.onclick = ()=>startPaket(n);
+  path.appendChild(tile);
+}
+
+function appendCaughtUpTile(path){
+  const tile = document.createElement('div');
+  tile.className = 'package-tile caught-up';
+  tile.innerHTML = `<span>✅ Kein Rückstand</span><span class="stars"></span>`;
+  path.appendChild(tile);
 }
 
 function renderPackagePath(){
@@ -313,19 +303,21 @@ function renderPackagePath(){
   path.innerHTML = '';
   const current = currentPackageNumber(currentSubject);
   const packages = state.subjects[currentSubject].packages;
-  const showUpTo = current + 2;
-  for(let n=1; n<=showUpTo; n++){
-    const done = packages[n] && packages[n].completed;
-    const locked = n > current;
-    const tile = document.createElement('div');
-    tile.className = 'package-tile' + (locked ? ' locked' : '');
-    if(!locked) tile.style.background = TABLE_COLORS[((n-1)%12)+1];
-    tile.innerHTML = `
-      <span>${locked ? '🔒 ' : ''}Paket ${n}</span>
-      <span class="stars">${done ? starString(packages[n].stars) : (locked ? '' : 'neu')}</span>
-    `;
-    if(!locked) tile.onclick = ()=>startPaket(n);
-    path.appendChild(tile);
+
+  const lastCurriculumToShow = Math.min(Math.max(current + 2, 1), CURRICULUM_PACKAGE_COUNT);
+  for(let n=1; n<=lastCurriculumToShow; n++){
+    appendPackageTile(path, n, current, packages);
+  }
+
+  if(current > CURRICULUM_PACKAGE_COUNT){
+    for(let n=CURRICULUM_PACKAGE_COUNT+1; n<current; n++){
+      appendPackageTile(path, n, current, packages);
+    }
+    if(packageHasContent(currentSubject, current)){
+      appendPackageTile(path, current, current, packages);
+    } else {
+      appendCaughtUpTile(path);
+    }
   }
 }
 
@@ -333,13 +325,14 @@ function renderPackagePath(){
 let quiz = null;
 
 function startPaket(packageNumber){
-  const questions = buildGuidedPackage(currentSubject, packageNumber);
+  const isReview = packageNumber > CURRICULUM_PACKAGE_COUNT;
+  const questions = buildPackageQuestions(currentSubject, packageNumber);
   beginQuiz({
     mode: 'paket',
     packageNumber,
     questions,
-    title: `Paket ${packageNumber}`,
-    hint: null
+    title: packageTileLabel(packageNumber),
+    hint: isReview ? 'Diese Aufgaben hast du zuletzt öfter falsch oder übersprungen. Papalino ist sicher: du schaffst das, Milli!' : null
   });
 }
 
@@ -350,20 +343,6 @@ function startAkademie(){
     questions,
     title: '🦊 Milli Power Akademie',
     hint: akademieHintText(currentSubject)
-  });
-}
-
-let activeSonderBlock = [];
-function startSonderblock(blockIndex){
-  const blocks = buildSonderblöcke(currentSubject);
-  const block = blocks[blockIndex] || [];
-  activeSonderBlock = block;
-  const questions = block.map(t=>({ subject:t.subject, reihe:t.reihe, position:t.position, answer:t.answer, promptText:t.promptText }));
-  beginQuiz({
-    mode: 'sonderblock',
-    questions,
-    title: `🎯 Sonderblock ${blockIndex+1}`,
-    hint: 'Diese Aufgaben hast du zuletzt öfter falsch oder übersprungen. Papalino ist sicher: du schaffst das, Milli!'
   });
 }
 
@@ -525,83 +504,47 @@ function finishRound(){
     saveState();
     cloudUpsertProgress();
 
-    const reachedAllReihen = quiz.packageNumber === 5;
-    document.getElementById('result-mascot').textContent = reachedAllReihen ? '🏆' : (stars === 3 ? '🎉' : (stars === 2 ? '😊' : '🙂'));
-    document.getElementById('result-title').textContent = reachedAllReihen
-      ? 'Meilenstein! Alle Reihen freigeschaltet!'
-      : (stars === 3 ? 'Perfekt gemeistert!' : 'Paket geschafft!');
-    document.getElementById('result-stars').textContent = starString(stars);
-    document.getElementById('result-detail').textContent = reachedAllReihen
-      ? `Papalino ist stolz: Milli übt jetzt schon in allen Reihen! (${quiz.mistakesFirstTry} Fehler beim ersten Versuch)`
-      : (quiz.mistakesFirstTry === 0
-          ? `Paket ${quiz.packageNumber} fehlerfrei gelöst!`
-          : `Paket ${quiz.packageNumber} geschafft (${quiz.mistakesFirstTry} Fehler beim ersten Versuch).`);
-    launchConfetti(reachedAllReihen ? 60 : 30);
+    const isReview = quiz.packageNumber > CURRICULUM_PACKAGE_COUNT;
+    const completedCurriculum = quiz.packageNumber === CURRICULUM_PACKAGE_COUNT;
+    const noMoreReview = isReview && buildSonderblöcke(quiz.subject).length === 0;
+
+    if(completedCurriculum){
+      document.getElementById('result-mascot').textContent = '🏆';
+      document.getElementById('result-title').textContent = 'Meilenstein! Alle Reihen gemeistert!';
+      document.getElementById('result-stars').textContent = starString(stars);
+      document.getElementById('result-detail').textContent =
+        `Papalino ist stolz: Milli hat das ganze Grundprogramm geschafft! (${quiz.mistakesFirstTry} Fehler beim ersten Versuch)`;
+      launchConfetti(60);
+    } else if(isReview && noMoreReview){
+      document.getElementById('result-mascot').textContent = '🏆';
+      document.getElementById('result-title').textContent = 'Kein Rückstand mehr!';
+      document.getElementById('result-stars').textContent = starString(stars);
+      document.getElementById('result-detail').textContent = 'Alle bisher schwierigen Aufgaben sind jetzt gemeistert. Stark, Milli!';
+      launchConfetti(60);
+    } else {
+      document.getElementById('result-mascot').textContent = stars === 3 ? '🎉' : (stars === 2 ? '😊' : '🙂');
+      document.getElementById('result-title').textContent = stars === 3 ? 'Perfekt gemeistert!' : `${isReview ? 'Wiederholung' : 'Paket'} geschafft!`;
+      document.getElementById('result-stars').textContent = starString(stars);
+      document.getElementById('result-detail').textContent = quiz.mistakesFirstTry === 0
+        ? `${packageTileLabel(quiz.packageNumber)} fehlerfrei gelöst!`
+        : `${packageTileLabel(quiz.packageNumber)} geschafft (${quiz.mistakesFirstTry} Fehler beim ersten Versuch).`;
+      launchConfetti(30);
+    }
     showScreen('screen-result');
     return;
   }
 
-  if(quiz.mode === 'akademie'){
-    document.getElementById('result-mascot').textContent = '🦊';
-    document.getElementById('result-title').textContent = 'Milli Power Akademie geschafft!';
-    document.getElementById('result-stars').textContent = '';
-    document.getElementById('result-detail').textContent = quiz.mistakesFirstTry === 0
-      ? 'Fehlerfrei! Papalino ist stolz auf dich, Milli!'
-      : `${quiz.mistakesFirstTry} Fehler beim ersten Versuch – Papalino merkt sich das für dein nächstes Training!`;
-    launchConfetti();
-    saveState();
-    cloudUpsertProgress();
-    showScreen('screen-result');
-    return;
-  }
-
-  // sonderblock
-  const remainingBlocks = buildSonderblöcke(quiz.subject);
-  const stillOpen = remainingBlocks.reduce((s,b)=>s+b.length, 0);
-  document.getElementById('result-mascot').textContent = stillOpen === 0 ? '🏆' : '🎯';
-  document.getElementById('result-title').textContent = stillOpen === 0 ? 'Kein Rückstand mehr!' : 'Sonderblock geschafft!';
+  // akademie
+  document.getElementById('result-mascot').textContent = '🦊';
+  document.getElementById('result-title').textContent = 'Milli Power Akademie geschafft!';
   document.getElementById('result-stars').textContent = '';
-  document.getElementById('result-detail').textContent = stillOpen === 0
-    ? 'Alle bisher schwierigen Aufgaben sind jetzt gemeistert. Stark, Milli!'
-    : `Noch ${stillOpen} Aufgabe(n) im Sonderbereich – weiter geht's, wann immer du magst.`;
-  launchConfetti(stillOpen === 0 ? 60 : 30);
+  document.getElementById('result-detail').textContent = quiz.mistakesFirstTry === 0
+    ? 'Fehlerfrei! Papalino ist stolz auf dich, Milli!'
+    : `${quiz.mistakesFirstTry} Fehler beim ersten Versuch – Papalino merkt sich das für dein nächstes Training!`;
+  launchConfetti();
   saveState();
   cloudUpsertProgress();
   showScreen('screen-result');
-}
-
-/* ---------- Sonderbereich ---------- */
-function goToSonderListe(){
-  const blocks = buildSonderblöcke(currentSubject);
-  const sym = subjectSymbol(currentSubject);
-  const list = document.getElementById('sonder-list');
-  const intro = document.getElementById('sonder-intro');
-  const buttonsWrap = document.getElementById('sonder-buttons');
-  list.innerHTML = '';
-  buttonsWrap.innerHTML = '';
-
-  const allFlagged = blocks.flat();
-  if(allFlagged.length === 0){
-    intro.textContent = 'Super, aktuell gibt es nichts zu wiederholen!';
-  } else {
-    intro.textContent = `${allFlagged.length} Aufgabe(n) brauchen noch Übung, in ${blocks.length} Block/Blöcken.`;
-    allFlagged.slice(0, 30).forEach(t=>{
-      const li = document.createElement('li');
-      const tagText = (t.fact.wrong>0 && t.fact.skip>=2) ? 'Fehler + übersprungen'
-        : (t.fact.wrong>0 ? 'Fehler' : 'oft übersprungen');
-      li.innerHTML = `<span>${t.promptText} ${t.answer}</span><span class="tag">${tagText}</span>`;
-      list.appendChild(li);
-    });
-    blocks.forEach((block, i)=>{
-      const btn = document.createElement('button');
-      btn.className = 'btn-primary';
-      btn.style.marginTop = '8px';
-      btn.textContent = `Block ${i+1} starten (${block.length})`;
-      btn.onclick = ()=>startSonderblock(i);
-      buttonsWrap.appendChild(btn);
-    });
-  }
-  showScreen('screen-sonder');
 }
 
 /* ---------- Confetti ---------- */
