@@ -25,8 +25,10 @@ const UNSEEN_WEIGHT = 7;
 // Wie stark häufiges Überspringen das Auswahl-Gewicht zusätzlich erhöht.
 const SKIP_WEIGHT_BONUS = 1.5;
 const SKIP_WEIGHT_CAP = 5;
-// Ab wie vielen Übersprüngen eine Aufgabe als "oft übersprungen" gilt.
-const SKIP_FLAG_THRESHOLD = 2;
+// Ab wie vielen Übersprüngen eine Aufgabe in die Wiederholung wandert.
+// Bewusst auf 1 gesetzt: jede übersprungene oder falsch beantwortete Aufgabe
+// landet garantiert in der Wiederholung, genau wie eine falsch beantwortete.
+const SKIP_FLAG_THRESHOLD = 1;
 
 /* ---------- Zustand (lokaler Cache) ---------- */
 function defaultSubjectState(){
