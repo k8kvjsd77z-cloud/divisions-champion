@@ -338,12 +338,36 @@ function getSupabaseClient(){
   return supabaseClient;
 }
 
-// Fire-and-forget: wird vom Spiel nach jeder Antwort/jedem Überspringen
-// aufgerufen. Fehler (z.B. kein Internet) werden bewusst verschluckt.
+// Alle Cloud-Schreibvorgänge laufen sequentiell durch diese Warteschlange
+// (statt jeweils sofort und parallel als "fire-and-forget"). Grund: bei
+// schnellem Antworten (z.B. 100 Aufgaben in wenigen Minuten) würden sonst
+// bis zu 200 gleichzeitige Netzwerk-Anfragen losgeschickt - auf manchen
+// Geräten/Browsern (v.a. mobil) gehen davon etliche einfach verloren, ohne
+// dass das Spiel etwas davon merkt. Mit der Warteschlange läuft immer nur
+// eine Anfrage gleichzeitig, und jede wird bei einem Fehler bis zu zweimal
+// wiederholt, bevor sie endgültig aufgegeben wird.
+let cloudQueue = Promise.resolve();
+function enqueueCloudWrite(label, run){
+  cloudQueue = cloudQueue.then(async ()=>{
+    for(let attempt=1; attempt<=3; attempt++){
+      try{
+        const { error } = await run();
+        if(!error) return;
+        console.warn(label, error.message);
+      }catch(e){
+        console.warn(label, e && e.message);
+      }
+      if(attempt<3) await new Promise(r=>setTimeout(r, 400*attempt));
+    }
+  });
+  return cloudQueue;
+}
+
+// Wird vom Spiel nach jeder Antwort/jedem Überspringen aufgerufen.
 function cloudLogAnswer(entry){
   const sb = getSupabaseClient();
   if(!sb) return;
-  sb.from('answer_log').insert({
+  enqueueCloudWrite('cloudLogAnswer', ()=>sb.from('answer_log').insert({
     subject: entry.subject,
     reihe: entry.reihe,
     position: entry.position,
@@ -351,13 +375,13 @@ function cloudLogAnswer(entry){
     correct: !!entry.correct,
     skipped: !!entry.skipped,
     mode: entry.mode
-  }).then(({error})=>{ if(error) console.warn('cloudLogAnswer', error.message); });
+  }));
 }
 
 function cloudUpsertFact(subject, reihe, position, fact){
   const sb = getSupabaseClient();
   if(!sb) return;
-  sb.from('facts').upsert({
+  enqueueCloudWrite('cloudUpsertFact', ()=>sb.from('facts').upsert({
     subject, reihe, position,
     box: fact.box,
     correct_count: fact.correct,
@@ -365,7 +389,7 @@ function cloudUpsertFact(subject, reihe, position, fact){
     skip_count: fact.skip,
     seen: fact.seen,
     updated_at: new Date().toISOString()
-  }, { onConflict: 'subject,reihe,position' }).then(({error})=>{ if(error) console.warn('cloudUpsertFact', error.message); });
+  }, { onConflict: 'subject,reihe,position' }));
 }
 
 function cloudUpsertProgress(){
@@ -373,13 +397,13 @@ function cloudUpsertProgress(){
   if(!sb) return;
   const packagesBySubject = {};
   SUBJECTS.forEach(s=>{ packagesBySubject[s] = state.subjects[s].packages; });
-  sb.from('progress').upsert({
+  enqueueCloudWrite('cloudUpsertProgress', ()=>sb.from('progress').upsert({
     id: true,
     packages: packagesBySubject,
     score: state.score,
     best_streak: state.bestStreak,
     updated_at: new Date().toISOString()
-  }, { onConflict: 'id' }).then(({error})=>{ if(error) console.warn('cloudUpsertProgress', error.message); });
+  }, { onConflict: 'id' }));
 }
 
 // Beim Start versuchen, den Cloud-Stand zu laden und über den lokalen Cache zu
