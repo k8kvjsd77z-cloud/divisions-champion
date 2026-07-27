@@ -30,14 +30,40 @@ const SKIP_WEIGHT_CAP = 5;
 // landet garantiert in der Wiederholung, genau wie eine falsch beantwortete.
 const SKIP_FLAG_THRESHOLD = 1;
 
+// Schriftliche Division/Multiplikation: eigenständige Bereiche, unabhängig
+// von den Reihen-Paketen oben. Jede Aufgabe wird frisch zufällig erzeugt
+// (kein fester 144er-Aufgabenpool), deshalb gibt es hier keine Akademie/
+// Wiederholung, nur 5 feste Pakete mit je 5 Aufgaben.
+const WRITTEN_SUBJECTS = ['writtenMultiplication', 'writtenDivision'];
+const WRITTEN_SUBJECT_LABELS = {
+  writtenMultiplication: 'Schriftliche Multiplikation',
+  writtenDivision: 'Schriftliche Division'
+};
+const WRITTEN_PACKAGE_COUNT = 5;
+const WRITTEN_PACKAGE_SIZE = 5;
+// Welcher einstellige Faktor/Divisor je Paket im Topf ist - wächst wie bei
+// den normalen Paketen schrittweise.
+const WRITTEN_FACTOR_POOLS = [
+  [2,3],
+  [2,3,4,5],
+  [2,3,4,5,6],
+  [2,3,4,5,6,7,8],
+  [2,3,4,5,6,7,8,9]
+];
+
 /* ---------- Zustand (lokaler Cache) ---------- */
 function defaultSubjectState(){
   return { packages: {}, facts: {} };
 }
+function defaultWrittenSubjectState(){
+  return { packages: {} };
+}
 function defaultState(){
   const subjects = {};
   SUBJECTS.forEach(s=>{ subjects[s] = defaultSubjectState(); });
-  return { score:0, bestStreak:0, subjects };
+  const written = {};
+  WRITTEN_SUBJECTS.forEach(s=>{ written[s] = defaultWrittenSubjectState(); });
+  return { score:0, bestStreak:0, subjects, written };
 }
 let state = loadState();
 
@@ -55,6 +81,10 @@ function loadState(){
         facts: Object.assign({}, parsedSub.facts || {})
       };
     });
+    WRITTEN_SUBJECTS.forEach(s=>{
+      const parsedSub = (parsed.written && parsed.written[s]) || {};
+      merged.written[s] = { packages: Object.assign({}, parsedSub.packages || {}) };
+    });
     return merged;
   }catch(e){ return defaultState(); }
 }
@@ -68,6 +98,18 @@ function currentPackageNumber(subject){
   let n = 1;
   while(packages[n] && packages[n].completed) n++;
   return n;
+}
+
+function currentWrittenPackageNumber(subject){
+  const packages = state.written[subject].packages;
+  let n = 1;
+  while(packages[n] && packages[n].completed) n++;
+  return n;
+}
+
+function totalWrittenStars(subject){
+  const packages = state.written[subject].packages;
+  return Object.values(packages).reduce((sum,p)=>sum + (p.stars||0), 0);
 }
 
 function reihenPoolForPackage(packageNumber){
@@ -260,6 +302,57 @@ function buildGuidedPackage(subject, packageNumber){
   return arranged.map(t=>makeTask(subject, t.reihe, t.position));
 }
 
+/* ============================================================
+   Schriftliche Division/Multiplikation
+   Zerlegungs-Rechenweg: die zweistellige Zahl wird in Zehner + Einer
+   zerlegt. Bei Multiplikation wird jeder Teil mit dem einstelligen Faktor
+   multipliziert (5×12 -> 5×10 und 5×2). Bei Division wird das (zweistellige)
+   Ergebnis in Zehner + Einer zerlegt und beide Teile durch denselben
+   Divisor geteilt (72÷6 -> 60÷6 und 12÷6) - bei größeren Divisoren kann die
+   Ausgangszahl dafür auch dreistellig werden, das ist genau der Sinn der
+   Übung (große Aufgaben in einfache Teile zerlegen).
+   ============================================================ */
+function buildWrittenTask(subject, packageNumber){
+  const pool = WRITTEN_FACTOR_POOLS[Math.min(packageNumber - 1, WRITTEN_FACTOR_POOLS.length - 1)];
+  const einstellig = pool[Math.floor(Math.random() * pool.length)];
+  const zehnerTeil = (1 + Math.floor(Math.random() * 9)) * 10; // 10,20,...,90
+  const einerTeil = Math.floor(Math.random() * 10); // 0-9
+  const zweistellig = zehnerTeil + einerTeil;
+
+  if(subject === 'writtenMultiplication'){
+    const teil1 = einstellig * zehnerTeil;
+    const teil2 = einstellig * einerTeil;
+    return {
+      subject,
+      promptText: `${einstellig} × ${zweistellig} =`,
+      step1: { text: `${einstellig} × ${zehnerTeil} =`, answer: teil1 },
+      step2: { text: `${einstellig} × ${einerTeil} =`, answer: teil2 },
+      finalAnswer: teil1 + teil2
+    };
+  }
+
+  // writtenDivision: Divisor = einstellig, Ergebnis (Quotient) = zweistellig,
+  // Ausgangszahl (Dividend) = einstellig * zweistellig.
+  const dividend = einstellig * zweistellig;
+  const teil1 = einstellig * zehnerTeil;
+  const teil2 = einstellig * einerTeil;
+  return {
+    subject,
+    promptText: `${dividend} ÷ ${einstellig} =`,
+    step1: { text: `${teil1} ÷ ${einstellig} =`, answer: zehnerTeil },
+    step2: { text: `${teil2} ÷ ${einstellig} =`, answer: einerTeil },
+    finalAnswer: zehnerTeil + einerTeil
+  };
+}
+
+function buildWrittenPackage(subject, packageNumber){
+  const tasks = [];
+  for(let i=0; i<WRITTEN_PACKAGE_SIZE; i++){
+    tasks.push(buildWrittenTask(subject, packageNumber));
+  }
+  return tasks;
+}
+
 // Milli Power Akademie: gewichteter Pool über alle bisher eingeführten Reihen,
 // Positionen 1-12 (11/12 tauchen hier gelegentlich als "neu" auf).
 function buildAkademiePool(subject){
@@ -399,6 +492,7 @@ function cloudUpsertProgress(){
   if(!sb) return;
   const packagesBySubject = {};
   SUBJECTS.forEach(s=>{ packagesBySubject[s] = state.subjects[s].packages; });
+  WRITTEN_SUBJECTS.forEach(s=>{ packagesBySubject[s] = state.written[s].packages; });
   enqueueCloudWrite('cloudUpsertProgress', ()=>sb.from('progress').upsert({
     id: true,
     packages: packagesBySubject,
@@ -435,6 +529,9 @@ async function cloudLoadIntoState(){
       const p = progressRows[0];
       SUBJECTS.forEach(s=>{
         if(p.packages && p.packages[s]) state.subjects[s].packages = p.packages[s];
+      });
+      WRITTEN_SUBJECTS.forEach(s=>{
+        if(p.packages && p.packages[s]) state.written[s].packages = p.packages[s];
       });
       state.score = p.score ?? state.score;
       state.bestStreak = p.best_streak ?? state.bestStreak;
