@@ -224,7 +224,10 @@
         <h1>🦊 Milli Power Akademie – Auswertung</h1>
         <p class="sub">Wie Milli bei Division und Multiplikation steht.</p>
       </div>
-      <span class="refresh-link" onclick="loadDashboardData()">Aktualisieren</span>
+      <div style="text-align:right;">
+        <span class="refresh-link" onclick="loadDashboardData()">Jetzt aktualisieren</span>
+        <div id="auto-refresh-note" style="font-size:.72rem; color:var(--text-secondary); margin-top:2px;"></div>
+      </div>
     </div>
 
     <div id="dashboard-content"><!-- wird dynamisch gefüllt --></div>
@@ -284,6 +287,29 @@ function checkPin(){
 function unlockDashboard(){
   showScreen('screen-dashboard');
   loadDashboardData();
+  startAutoRefresh();
+}
+
+// Holt automatisch neue Ergebnisse nach, solange das Dashboard offen ist -
+// damit man den Lernfortschritt live verfolgen kann, ohne selbst auf
+// "Aktualisieren" klicken zu müssen.
+const AUTO_REFRESH_SECONDS = 30;
+let autoRefreshTimer = null;
+
+function startAutoRefresh(){
+  if(autoRefreshTimer) return;
+  autoRefreshTimer = setInterval(()=>{
+    if(document.getElementById('screen-dashboard').classList.contains('active')){
+      loadDashboardData();
+    }
+  }, AUTO_REFRESH_SECONDS * 1000);
+}
+
+function updateAutoRefreshNote(){
+  const el = document.getElementById('auto-refresh-note');
+  if(!el) return;
+  const timeStr = new Date().toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  el.textContent = `Zuletzt aktualisiert: ${timeStr} · alle ${AUTO_REFRESH_SECONDS}s automatisch`;
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
@@ -337,6 +363,7 @@ async function loadDashboardData(){
     hydrateStateFromRows(factRows||[], (progressRows&&progressRows[0])||null);
     lastLog = log||[];
     renderDashboard();
+    updateAutoRefreshNote();
   }catch(err){
     content.innerHTML = `
       <div class="empty-state">
@@ -344,6 +371,7 @@ async function loadDashboardData(){
         <h2>Daten konnten nicht geladen werden</h2>
         <p>${(err&&err.message)||'Unbekannter Fehler'}</p>
       </div>`;
+    updateAutoRefreshNote();
   }
 }
 
