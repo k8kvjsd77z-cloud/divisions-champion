@@ -418,9 +418,11 @@ async function cloudLoadIntoState(){
       sb.from('progress').select('*').eq('id', true).limit(1)
     ]);
     if(factErr || progErr) throw factErr || progErr;
+    const cloudFactKeys = new Set();
     if(factRows){
       factRows.forEach(r=>{
         if(!state.subjects[r.subject]) return;
+        cloudFactKeys.add(r.subject + '|' + factKey(r.reihe, r.position));
         state.subjects[r.subject].facts[factKey(r.reihe, r.position)] = {
           box: r.box, correct: r.correct_count, wrong: r.wrong_count,
           skip: r.skip_count||0, seen: r.seen
@@ -436,6 +438,21 @@ async function cloudLoadIntoState(){
       state.bestStreak = p.best_streak ?? state.bestStreak;
     }
     saveState();
+
+    // Selbstheilung: Aufgaben, die lokal schon geübt wurden, aber (z.B. durch
+    // einen früheren Sync-Fehler) nie in der Cloud ankamen, jetzt nachholen.
+    // So gehen bereits gespielte Ergebnisse nicht dauerhaft verloren, sobald
+    // das Gerät das nächste Mal online ist.
+    SUBJECTS.forEach(s=>{
+      Object.keys(state.subjects[s].facts).forEach(key=>{
+        if(cloudFactKeys.has(s + '|' + key)) return;
+        const fact = state.subjects[s].facts[key];
+        if(!fact.seen) return;
+        const [reiheStr, positionStr] = key.split('_');
+        cloudUpsertFact(s, Number(reiheStr), Number(positionStr), fact);
+      });
+    });
+
     return true;
   }catch(e){
     console.warn('cloudLoadIntoState fehlgeschlagen (offline?):', e && e.message);
