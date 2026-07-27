@@ -152,6 +152,37 @@
   }
   .schriftlich-input.correct{background:#d5f5db; border-color:#1f8b3b; color:#1f8b3b;}
   .schriftlich-input.wrong{background:#ffdcdc; border-color:#c62828; color:#c62828;}
+
+  /* Ergebnis-Feier: Maskottchen-Hüpfer, Sterne-Pop, Sprenkel-Burst */
+  .mascot.celebrate{ animation:mascotBounce .7s cubic-bezier(.36,1.4,.4,1); }
+  @keyframes mascotBounce{
+    0%{ transform:scale(0.3) rotate(0deg); opacity:0; }
+    45%{ transform:scale(1.3) rotate(-8deg); opacity:1; }
+    65%{ transform:scale(0.92) rotate(6deg); }
+    100%{ transform:scale(1) rotate(0deg); }
+  }
+  #result-title.celebrate{ animation:titlePop .5s ease .15s both; }
+  @keyframes titlePop{ from{ transform:scale(0.7); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .star-char{ display:inline-block; opacity:0; animation:starPop .45s ease both; }
+  @keyframes starPop{
+    0%{ transform:scale(0) rotate(-40deg); opacity:0; }
+    60%{ transform:scale(1.35) rotate(10deg); opacity:1; }
+    100%{ transform:scale(1) rotate(0deg); opacity:1; }
+  }
+  .sparkle{
+    position:fixed; top:50%; left:50%; z-index:998; pointer-events:none;
+    font-size:1.6rem; animation:sparkleBurst 1.1s ease-out forwards;
+  }
+  @keyframes sparkleBurst{
+    0%{ transform:translate(-50%,-50%) scale(0.4); opacity:1; }
+    100%{ transform:translate(var(--sx),var(--sy)) scale(1.1); opacity:0; }
+  }
+  .card.glow{ animation:cardGlow 1.4s ease-out; }
+  @keyframes cardGlow{
+    0%{ box-shadow:0 8px 20px rgba(0,0,0,0.12), 0 0 0 rgba(255,214,64,0); }
+    35%{ box-shadow:0 8px 20px rgba(0,0,0,0.12), 0 0 40px 10px rgba(255,214,64,0.55); }
+    100%{ box-shadow:0 8px 20px rgba(0,0,0,0.12), 0 0 0 rgba(255,214,64,0); }
+  }
 </style>
 </head>
 <body>
@@ -160,7 +191,7 @@
   <!-- LOGIN SCREEN -->
   <div class="screen active" id="screen-login">
     <div class="card">
-      <div class="mascot">🦊🔒</div>
+      <div class="mascot">🐯🔒</div>
       <h1>Milli Power Akademie</h1>
       <p class="sub">Bitte anmelden, um zu spielen.</p>
       <input class="login-input" id="login-username" type="text" placeholder="Benutzername" autocomplete="username">
@@ -173,7 +204,7 @@
   <!-- SUBJECT SELECT -->
   <div class="screen" id="screen-subject">
     <div class="card">
-      <div class="mascot">🦊</div>
+      <div class="mascot">🐯</div>
       <h1>Hallo Milli!</h1>
       <p class="sub">Papalino ist dein Trainer. Was möchtest du heute üben?</p>
       <button class="subject-btn subject-division" onclick="chooseSubject('division')">
@@ -219,7 +250,7 @@
       <div class="package-path" id="package-path"></div>
 
       <div class="hint-box" id="akademie-hint"></div>
-      <button class="hub-btn btn-akademie" onclick="startAkademie()">🦊 Milli Power Akademie</button>
+      <button class="hub-btn btn-akademie" onclick="startAkademie()">🐯 Milli Power Akademie</button>
       <br>
       <span class="footer-link" onclick="goToSubjectSelect()">Anderes Fach wählen</span>
     </div>
@@ -296,7 +327,7 @@
 
   <!-- RESULT SCREEN -->
   <div class="screen" id="screen-result">
-    <div class="card">
+    <div class="card" id="result-card">
       <div class="mascot" id="result-mascot">🎉</div>
       <h2 id="result-title">Super gemacht!</h2>
       <div id="result-stars" style="font-size:2.4rem; margin:10px 0;"></div>
@@ -496,11 +527,11 @@ function finishSchriftlichRound(){
 
   document.getElementById('result-mascot').textContent = stars === 3 ? '🎉' : (stars === 2 ? '😊' : '🙂');
   document.getElementById('result-title').textContent = stars === 3 ? 'Perfekt gemeistert!' : 'Paket geschafft!';
-  document.getElementById('result-stars').textContent = starString(stars);
-  document.getElementById('result-detail').textContent = schriftlichQuiz.mistakesFirstTry === 0
-    ? `Paket ${schriftlichQuiz.packageNumber} fehlerfrei gelöst!`
-    : `Paket ${schriftlichQuiz.packageNumber} geschafft (${schriftlichQuiz.mistakesFirstTry} Fehler beim ersten Versuch).`;
+  document.getElementById('result-detail').textContent = (schriftlichQuiz.mistakesFirstTry === 0
+    ? `Paket ${schriftlichQuiz.packageNumber} fehlerfrei gelöst! `
+    : `Paket ${schriftlichQuiz.packageNumber} geschafft (${schriftlichQuiz.mistakesFirstTry} Fehler beim ersten Versuch). `) + milliPraise(stars);
   launchConfetti(stars === 3 ? 40 : 25);
+  celebrateResultScreen(stars);
   resultReturnAction = goToWrittenHub;
   showScreen('screen-result');
 }
@@ -599,7 +630,7 @@ function startAkademie(){
   beginQuiz({
     mode: 'akademie',
     questions,
-    title: '🦊 Milli Power Akademie',
+    title: '🐯 Milli Power Akademie',
     hint: akademieHintText(currentSubject)
   });
 }
@@ -649,6 +680,69 @@ function updateAnswerBox(){
 }
 
 const PRAISE = ['Super, Milli!','Klasse gemacht!','Stark!','Weiter so!','Toll gemacht!','Genau richtig!'];
+
+const MILLI_PRAISE_PERFECT = [
+  'Wow, Milli, fehlerfrei – du bist eine Rechen-Rakete!',
+  'Milli, das war perfekt! Darauf kannst du richtig stolz sein!',
+  'Alle Sterne, Milli! Du wächst über dich hinaus!',
+  'Fehlerfrei, Milli – Papalino ist total begeistert von dir!',
+  'Milli, du hast das voll drauf! Einfach spitze!'
+];
+const MILLI_PRAISE_GOOD = [
+  'Stark gemacht, Milli – weiter so!',
+  'Milli, du hast das richtig gut hinbekommen!',
+  'Klasse Leistung, Milli! Nächstes Mal klappt es noch fehlerfreier.',
+  'Milli, dranbleiben lohnt sich – gut gemacht!',
+  'Toller Einsatz, Milli!'
+];
+function milliPraise(stars){
+  const pool = stars === 3 ? MILLI_PRAISE_PERFECT : MILLI_PRAISE_GOOD;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+/* ---------- Ergebnis-Feier: Sterne-Pop, Sprenkel-Burst, Maskottchen-Hüpfer ---------- */
+function renderResultStars(n){
+  const el = document.getElementById('result-stars');
+  el.innerHTML = '';
+  for(let i=0;i<3;i++){
+    const span = document.createElement('span');
+    span.className = 'star-char';
+    span.textContent = i < n ? '★' : '☆';
+    span.style.animationDelay = (i*0.14) + 's';
+    el.appendChild(span);
+  }
+}
+function launchSparkles(count=16){
+  const symbols = ['✨','🌟','⭐'];
+  for(let i=0;i<count;i++){
+    const el = document.createElement('div');
+    el.className = 'sparkle';
+    el.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+    const angle = Math.random()*Math.PI*2;
+    const dist = 80 + Math.random()*160;
+    el.style.setProperty('--sx', Math.cos(angle)*dist + 'px');
+    el.style.setProperty('--sy', Math.sin(angle)*dist + 'px');
+    el.style.animationDelay = (Math.random()*0.2) + 's';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 1400);
+  }
+}
+function celebrateResultScreen(stars){
+  const mascot = document.getElementById('result-mascot');
+  const title = document.getElementById('result-title');
+  const card = document.getElementById('result-card');
+  mascot.classList.remove('celebrate'); void mascot.offsetWidth; mascot.classList.add('celebrate');
+  title.classList.remove('celebrate'); void title.offsetWidth; title.classList.add('celebrate');
+  if(stars){
+    renderResultStars(stars);
+    if(stars === 3){
+      card.classList.remove('glow'); void card.offsetWidth; card.classList.add('glow');
+      launchSparkles(24);
+      return;
+    }
+  }
+  launchSparkles(10);
+}
 const ENCOURAGE = ['Fast! Schau nochmal genau hin.','Kein Problem, nächstes Mal klappt es!','Kleiner Fehler, weiter geht’s!'];
 
 function handleKey(k){
@@ -770,37 +864,38 @@ function finishRound(){
     if(completedCurriculum){
       document.getElementById('result-mascot').textContent = '🏆';
       document.getElementById('result-title').textContent = 'Meilenstein! Alle Reihen gemeistert!';
-      document.getElementById('result-stars').textContent = starString(stars);
       document.getElementById('result-detail').textContent =
-        `Papalino ist stolz: Milli hat das ganze Grundprogramm geschafft! (${quiz.mistakesFirstTry} Fehler beim ersten Versuch)`;
+        `Papalino ist stolz: Milli hat das ganze Grundprogramm geschafft! (${quiz.mistakesFirstTry} Fehler beim ersten Versuch) ${milliPraise(stars)}`;
       launchConfetti(60);
+      celebrateResultScreen(stars);
     } else if(isReview && noMoreReview){
       document.getElementById('result-mascot').textContent = '🏆';
       document.getElementById('result-title').textContent = 'Kein Rückstand mehr!';
-      document.getElementById('result-stars').textContent = starString(stars);
-      document.getElementById('result-detail').textContent = 'Alle bisher schwierigen Aufgaben sind jetzt gemeistert. Stark, Milli!';
+      document.getElementById('result-detail').textContent = `Alle bisher schwierigen Aufgaben sind jetzt gemeistert. ${milliPraise(stars)}`;
       launchConfetti(60);
+      celebrateResultScreen(stars);
     } else {
       document.getElementById('result-mascot').textContent = stars === 3 ? '🎉' : (stars === 2 ? '😊' : '🙂');
       document.getElementById('result-title').textContent = stars === 3 ? 'Perfekt gemeistert!' : `${isReview ? 'Wiederholung' : 'Paket'} geschafft!`;
-      document.getElementById('result-stars').textContent = starString(stars);
-      document.getElementById('result-detail').textContent = quiz.mistakesFirstTry === 0
-        ? `${packageTileLabel(quiz.packageNumber)} fehlerfrei gelöst!`
-        : `${packageTileLabel(quiz.packageNumber)} geschafft (${quiz.mistakesFirstTry} Fehler beim ersten Versuch).`;
+      document.getElementById('result-detail').textContent = (quiz.mistakesFirstTry === 0
+        ? `${packageTileLabel(quiz.packageNumber)} fehlerfrei gelöst! `
+        : `${packageTileLabel(quiz.packageNumber)} geschafft (${quiz.mistakesFirstTry} Fehler beim ersten Versuch). `) + milliPraise(stars);
       launchConfetti(30);
+      celebrateResultScreen(stars);
     }
     showScreen('screen-result');
     return;
   }
 
   // akademie
-  document.getElementById('result-mascot').textContent = '🦊';
+  document.getElementById('result-mascot').textContent = '🐯';
   document.getElementById('result-title').textContent = 'Milli Power Akademie geschafft!';
-  document.getElementById('result-stars').textContent = '';
+  document.getElementById('result-stars').innerHTML = '';
   document.getElementById('result-detail').textContent = quiz.mistakesFirstTry === 0
     ? 'Fehlerfrei! Papalino ist stolz auf dich, Milli!'
     : `${quiz.mistakesFirstTry} Fehler beim ersten Versuch – Papalino merkt sich das für dein nächstes Training!`;
   launchConfetti();
+  celebrateResultScreen(null);
   saveState();
   cloudUpsertProgress();
   showScreen('screen-result');

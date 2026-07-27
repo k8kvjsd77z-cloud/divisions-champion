@@ -236,8 +236,8 @@ function akademieHintText(subject){
   const weak = analyzeWeakAreas(subject);
   const sym = subjectSymbol(subject);
   if(weak.length === 0) return 'Löse zuerst ein Paket, damit Papalino sehen kann, wo Milli üben sollte!';
-  if(weak.length === 1) return `🦊 Papalino hat gesehen: Die ${sym}${weak[0]}-Reihe braucht noch etwas Übung. Los geht's, Milli!`;
-  return `🦊 Papalino hat gesehen: Die ${sym}${weak[0]}- und ${sym}${weak[1]}-Reihe brauchen noch etwas Übung. Los geht's, Milli!`;
+  if(weak.length === 1) return `🐯 Papalino hat gesehen: Die ${sym}${weak[0]}-Reihe braucht noch etwas Übung. Los geht's, Milli!`;
+  return `🐯 Papalino hat gesehen: Die ${sym}${weak[0]}- und ${sym}${weak[1]}-Reihe brauchen noch etwas Übung. Los geht's, Milli!`;
 }
 
 /* ---------- Aufgaben-Erzeugung ---------- */

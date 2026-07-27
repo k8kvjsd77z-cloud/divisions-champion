@@ -161,7 +161,7 @@
   <!-- LOGIN (Supabase Auth) -->
   <div class="screen active" id="screen-login">
     <div class="auth-card">
-      <div style="font-size:40px;">🦊🔒</div>
+      <div style="font-size:40px;">🐯🔒</div>
       <h2>Anmelden</h2>
       <p class="sub" style="margin-bottom:0;">Familien-Zugang eingeben.</p>
       <input id="login-username" type="text" placeholder="Benutzername" autocomplete="username" style="margin-top:16px;">
@@ -174,7 +174,7 @@
   <!-- PIN GATE -->
   <div class="screen" id="screen-pin">
     <div class="auth-card">
-      <div style="font-size:40px;">🦊🔒</div>
+      <div style="font-size:40px;">🐯🔒</div>
       <h2>Eltern-Dashboard</h2>
       <p class="sub" style="margin-bottom:0;">Gib den PIN ein, um die Auswertung zu sehen.</p>
       <input id="pin-input" type="password" inputmode="numeric" maxlength="8" autocomplete="off">
@@ -187,7 +187,7 @@
   <div class="screen" id="screen-dashboard">
     <div class="top-row">
       <div>
-        <h1>🦊 Milli Power Akademie – Auswertung</h1>
+        <h1>🐯 Milli Power Akademie – Auswertung</h1>
         <p class="sub">Wie Milli bei Division und Multiplikation steht.</p>
       </div>
       <div style="text-align:right;">
@@ -370,7 +370,7 @@ function renderDashboard(){
   if(!anyFacts && lastLog.length === 0){
     content.innerHTML = `
       <div class="empty-state">
-        <div style="font-size:40px;">🦊</div>
+        <div style="font-size:40px;">🐯</div>
         <h2>Noch keine Übungsdaten</h2>
         <p>Sobald Milli im Spiel ein paar Aufgaben löst, erscheint hier die Auswertung.</p>
       </div>`;
@@ -413,6 +413,7 @@ function compactSummaryHTML(){
       <div class="summary-grid">
         <div class="summary-tile"><b>${accuracy===null?'–':accuracy+'%'}</b><span>Trefferquote gesamt</span></div>
         <div class="summary-tile"><b>${days}</b><span>Übungstage insgesamt</span></div>
+        <div class="summary-tile"><b>${state.score}</b><span>Punkte gesamt</span></div>
         ${perSubjectSummary.map(p=>`
           <div class="summary-tile"><b>Paket ${p.paket}</b><span>${SUBJECT_LABELS[p.subject]} · ${p.stars} ⭐${p.flagged?` · ${p.flagged} zu wiederholen`:''}</span></div>
         `).join('')}
