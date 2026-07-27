@@ -5,7 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Eltern-Dashboard – Milli Power Akademie</title>
 <style>
-  .viz-root{
+  /* Bewusst immer hell, unabhängig vom Geräte-Dark-Mode - die Auswertung
+     soll immer gut lesbar sein (dunkler Text auf weißem Grund). Auf :root
+     definiert (statt auf einem inneren div), damit die Variablen an body
+     und alle Elemente korrekt weitervererbt werden. */
+  :root{
     color-scheme: light;
     --surface-1:      #fcfcfb;
     --page:           #f9f9f7;
@@ -22,44 +26,6 @@
     --serious:        #ec835a;
     --critical:       #d03b3b;
     --nodata:         #d8d7d0;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) .viz-root{
-      color-scheme: dark;
-      --surface-1:      #1a1a19;
-      --page:           #0d0d0d;
-      --text-primary:   #ffffff;
-      --text-secondary: #c3c2b7;
-      --muted:          #898781;
-      --gridline:       #2c2c2a;
-      --baseline:       #383835;
-      --border:         rgba(255,255,255,0.10);
-      --card:           #232322;
-      --seq-blue:       #3987e5;
-      --good:           #0ca30c;
-      --warning:        #fab219;
-      --serious:        #ec835a;
-      --critical:       #d03b3b;
-      --nodata:         #3a3a37;
-    }
-  }
-  :root[data-theme="dark"] .viz-root{
-    color-scheme: dark;
-    --surface-1:      #1a1a19;
-    --page:           #0d0d0d;
-    --text-primary:   #ffffff;
-    --text-secondary: #c3c2b7;
-    --muted:          #898781;
-    --gridline:       #2c2c2a;
-    --baseline:       #383835;
-    --border:         rgba(255,255,255,0.10);
-    --card:           #232322;
-    --seq-blue:       #3987e5;
-    --good:           #0ca30c;
-    --warning:        #fab219;
-    --serious:        #ec835a;
-    --critical:       #d03b3b;
-    --nodata:         #3a3a37;
   }
 
   *{box-sizing:border-box;}
@@ -226,6 +192,7 @@
       </div>
       <div style="text-align:right;">
         <span class="refresh-link" onclick="loadDashboardData()">Jetzt aktualisieren</span>
+        <span class="refresh-link" onclick="downloadResultsCSV()" style="margin-left:14px;">⬇ Ergebnisse herunterladen</span>
         <div id="auto-refresh-note" style="font-size:.72rem; color:var(--text-secondary); margin-top:2px;"></div>
       </div>
     </div>
@@ -463,6 +430,46 @@ function allFactsList(subject){
     }
   }
   return list;
+}
+
+// Baut den CSV-Text aus allen geübten Aufgaben (beide Fächer) - als reine
+// Funktion ohne DOM-Nebenwirkungen, damit sie sich einfach testen lässt.
+function buildResultsCSVString(){
+  const rows = [['Fach','Reihe','Aufgabe','Ergebnis','Box-Stufe','Richtig','Falsch','Übersprungen']];
+  SUBJECTS.forEach(subject=>{
+    allFactsList(subject).forEach(t=>{
+      rows.push([
+        SUBJECT_LABELS[subject],
+        t.reihe,
+        t.promptText.replace(/\s*=\s*$/, ''),
+        t.answer,
+        t.fact.box,
+        t.fact.correct,
+        t.fact.wrong,
+        t.fact.skip
+      ]);
+    });
+  });
+  return rows.map(row => row.map(cell => {
+    const s = String(cell);
+    return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }).join(';')).join('\r\n');
+}
+
+// Exportiert die Ergebnisse als CSV-Datei, damit sie offline gespeichert
+// oder z.B. mit der Lehrkraft geteilt werden können (Excel/Numbers-kompatibel).
+function downloadResultsCSV(){
+  const csv = buildResultsCSVString();
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `milli-ergebnisse-${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function computePerReiheErrorRates(subject){

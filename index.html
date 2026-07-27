@@ -167,7 +167,6 @@
         ✖️ Multiplikation
         <small id="subject-stat-multiplication">Paket 1</small>
       </button>
-      <span class="footer-link" onclick="resetProgress()">Fortschritt zurücksetzen</span>
     </div>
   </div>
 
@@ -574,16 +573,6 @@ function launchConfetti(count=30){
     el.style.opacity = 0.7 + Math.random()*0.3;
     document.body.appendChild(el);
     setTimeout(()=>el.remove(), 4000);
-  }
-}
-
-/* ---------- Reset ---------- */
-function resetProgress(){
-  if(confirm('Wirklich den ganzen Fortschritt löschen?')){
-    state = defaultState();
-    saveState();
-    cloudUpsertProgress();
-    goToSubjectSelect();
   }
 }
 
