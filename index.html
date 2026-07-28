@@ -138,18 +138,20 @@
   .badge-row{display:flex; justify-content:center; gap:10px; margin:14px 0; flex-wrap:wrap;}
   .badge{font-size:1.6rem;}
 
-  /* Schriftliche Division/Multiplikation: 3-Felder-Aufgabe */
+  /* Schriftliche Division/Multiplikation: Aufgabe mit Zwischenschritten */
   .schriftlich-steps{ max-width:320px; margin:18px auto; text-align:left; }
   .step-row{
     display:flex; align-items:center; justify-content:space-between;
-    gap:10px; margin-bottom:12px; font-size:1.2rem; font-weight:700;
+    gap:8px; margin-bottom:12px; font-size:1.2rem; font-weight:700;
   }
+  .step-row.mult-row{ justify-content:center; }
   .step-row.final-row{ border-top:2px dashed #dcdfe8; padding-top:12px; margin-top:4px; }
   .schriftlich-input{
     width:90px; font-size:1.2rem; font-weight:800; text-align:center;
     padding:10px 6px; border-radius:12px; border:2px solid #dcdfe8;
     background:#f5f6fb; color:var(--ink); font-family:inherit;
   }
+  .schriftlich-input.schriftlich-input-small{ width:58px; padding:10px 4px; }
   .schriftlich-input.correct{background:#d5f5db; border-color:#1f8b3b; color:#1f8b3b;}
   .schriftlich-input.wrong{background:#ffdcdc; border-color:#c62828; color:#c62828;}
 
@@ -303,11 +305,11 @@
       <div class="question" id="schriftlich-question">12 × 5 =</div>
 
       <div class="schriftlich-steps">
-        <div class="step-row">
+        <div class="step-row" id="schriftlich-step1-row">
           <span id="schriftlich-step1-label">10 × 5 =</span>
           <input class="schriftlich-input" type="text" inputmode="numeric" id="schriftlich-step1-input">
         </div>
-        <div class="step-row">
+        <div class="step-row" id="schriftlich-step2-row">
           <span id="schriftlich-step2-label">2 × 5 =</span>
           <input class="schriftlich-input" type="text" inputmode="numeric" id="schriftlich-step2-input">
         </div>
@@ -430,20 +432,40 @@ function startWrittenPaket(packageNumber){
 
 function currentSchriftlichTask(){ return schriftlichQuiz.tasks[schriftlichQuiz.index]; }
 
+function schriftlichStepRowHTML(isMult, einstellig, labelText, rowIndex){
+  if(isMult){
+    return `
+      <span>${einstellig} ×</span>
+      <input class="schriftlich-input schriftlich-input-small" type="text" inputmode="numeric" id="schriftlich-step${rowIndex}-part-input">
+      <span>=</span>
+      <input class="schriftlich-input" type="text" inputmode="numeric" id="schriftlich-step${rowIndex}-input">
+    `;
+  }
+  return `
+    <span id="schriftlich-step${rowIndex}-label">${labelText}</span>
+    <input class="schriftlich-input" type="text" inputmode="numeric" id="schriftlich-step${rowIndex}-input">
+  `;
+}
+
 function renderSchriftlichTask(){
   const t = currentSchriftlichTask();
+  const isMult = t.subject === 'writtenMultiplication';
   document.getElementById('schriftlich-question').textContent = t.promptText;
-  document.getElementById('schriftlich-step1-label').textContent = t.step1.text;
-  document.getElementById('schriftlich-step2-label').textContent = t.step2.text;
+
+  const row1 = document.getElementById('schriftlich-step1-row');
+  const row2 = document.getElementById('schriftlich-step2-row');
+  row1.className = 'step-row' + (isMult ? ' mult-row' : '');
+  row2.className = 'step-row' + (isMult ? ' mult-row' : '');
+  row1.innerHTML = schriftlichStepRowHTML(isMult, t.einstellig, isMult ? '' : t.step1.text, 1);
+  row2.innerHTML = schriftlichStepRowHTML(isMult, t.einstellig, isMult ? '' : t.step2.text, 2);
+
   document.getElementById('schriftlich-count').textContent =
     `Aufgabe ${Math.min(schriftlichQuiz.index+1, schriftlichQuiz.total)} / ${schriftlichQuiz.total}`;
   const pct = Math.round((schriftlichQuiz.index/schriftlichQuiz.total)*100);
   document.getElementById('schriftlich-progress-fill').style.width = pct+'%';
-  ['schriftlich-step1-input','schriftlich-step2-input','schriftlich-final-input'].forEach(id=>{
-    const el = document.getElementById(id);
-    el.value = '';
-    el.className = 'schriftlich-input';
-  });
+  const finalInput = document.getElementById('schriftlich-final-input');
+  finalInput.value = '';
+  finalInput.className = 'schriftlich-input';
   document.getElementById('schriftlich-feedback').textContent = ' ';
   schriftlichQuiz.lockInput = false;
 }
@@ -452,9 +474,56 @@ function markSchriftlichField(id, isCorrect){
   document.getElementById(id).classList.add(isCorrect ? 'correct' : 'wrong');
 }
 
+function submitSchriftlichMultiplication(t){
+  const vPart1 = parseInt(document.getElementById('schriftlich-step1-part-input').value, 10);
+  const v1 = parseInt(document.getElementById('schriftlich-step1-input').value, 10);
+  const vPart2 = parseInt(document.getElementById('schriftlich-step2-part-input').value, 10);
+  const v2 = parseInt(document.getElementById('schriftlich-step2-input').value, 10);
+  const vFinal = parseInt(document.getElementById('schriftlich-final-input').value, 10);
+  if([vPart1, v1, vPart2, v2, vFinal].some(isNaN)){
+    document.getElementById('schriftlich-feedback').textContent = 'Bitte alle Felder ausfüllen.';
+    return;
+  }
+
+  const correctPart1 = vPart1 === t.step1.part;
+  const correct1 = v1 === t.step1.answer;
+  const correctPart2 = vPart2 === t.step2.part;
+  const correct2 = v2 === t.step2.answer;
+  const correctFinal = vFinal === t.finalAnswer;
+  const allCorrect = correctPart1 && correct1 && correctPart2 && correct2 && correctFinal;
+
+  schriftlichQuiz.lockInput = true;
+  markSchriftlichField('schriftlich-step1-part-input', correctPart1);
+  markSchriftlichField('schriftlich-step1-input', correct1);
+  markSchriftlichField('schriftlich-step2-part-input', correctPart2);
+  markSchriftlichField('schriftlich-step2-input', correct2);
+  markSchriftlichField('schriftlich-final-input', correctFinal);
+
+  if(allCorrect){
+    state.score += 10;
+    saveState();
+    document.getElementById('schriftlich-feedback').textContent = PRAISE[Math.floor(Math.random()*PRAISE.length)];
+    advanceSchriftlichQueue(false);
+  } else {
+    document.getElementById('schriftlich-feedback').textContent = 'Schau nochmal genau hin – die richtige Lösung steht jetzt daneben.';
+    if(!correctPart1) document.getElementById('schriftlich-step1-part-input').value = t.step1.part;
+    if(!correct1) document.getElementById('schriftlich-step1-input').value = t.step1.answer;
+    if(!correctPart2) document.getElementById('schriftlich-step2-part-input').value = t.step2.part;
+    if(!correct2) document.getElementById('schriftlich-step2-input').value = t.step2.answer;
+    if(!correctFinal) document.getElementById('schriftlich-final-input').value = t.finalAnswer;
+    if(!t._countedMistake){
+      t._countedMistake = true;
+      schriftlichQuiz.mistakesFirstTry++;
+    }
+    advanceSchriftlichQueue(true);
+  }
+}
+
 function submitSchriftlichAnswer(){
   if(!schriftlichQuiz || schriftlichQuiz.lockInput) return;
   const t = currentSchriftlichTask();
+  if(t.subject === 'writtenMultiplication') return submitSchriftlichMultiplication(t);
+
   const v1 = parseInt(document.getElementById('schriftlich-step1-input').value, 10);
   const v2 = parseInt(document.getElementById('schriftlich-step2-input').value, 10);
   const vFinal = parseInt(document.getElementById('schriftlich-final-input').value, 10);

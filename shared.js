@@ -322,11 +322,14 @@ function buildWrittenTask(subject, packageNumber){
   if(subject === 'writtenMultiplication'){
     const teil1 = einstellig * zehnerTeil;
     const teil2 = einstellig * einerTeil;
+    // Die Zerlegung (Zehner-/Einerteil) ist hier bewusst nicht vorgegeben -
+    // Milli soll sie selbst eintragen, nicht nur die Teilprodukte.
     return {
       subject,
       promptText: `${einstellig} × ${zweistellig} =`,
-      step1: { text: `${einstellig} × ${zehnerTeil} =`, answer: teil1 },
-      step2: { text: `${einstellig} × ${einerTeil} =`, answer: teil2 },
+      einstellig,
+      step1: { part: zehnerTeil, answer: teil1 },
+      step2: { part: einerTeil, answer: teil2 },
       finalAnswer: teil1 + teil2
     };
   }
