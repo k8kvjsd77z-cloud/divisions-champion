@@ -527,6 +527,14 @@ function submitSchriftlichMultiplication(t){
   markSchriftlichField('schriftlich-step2-input', correct2);
   markSchriftlichField('schriftlich-final-input', correctFinal);
 
+  // Reihe = einstelliger Faktor - so bekommt das Eltern-Dashboard auch für
+  // die schriftlichen Fächer eine Fehlerquote-je-Reihe-Auswertung, obwohl
+  // die zweistellige Zahl jedes Mal neu zufällig ist (Position ist deshalb
+  // immer fest 1, es gibt keine zweite Dimension wie bei Division/Mult.).
+  const updatedFact = updateFact(t.subject, t.einstellig, 1, allCorrect);
+  cloudUpsertFact(t.subject, t.einstellig, 1, updatedFact);
+  cloudLogAnswer({ subject:t.subject, reihe:t.einstellig, position:1, given:vFinal, correct:allCorrect, skipped:false, mode:'schriftlich' });
+
   if(allCorrect){
     state.score += 10;
     saveState();
@@ -570,6 +578,10 @@ function submitSchriftlichAnswer(){
   markSchriftlichField('schriftlich-step2-input', correct2);
   markSchriftlichField('schriftlich-final-input', correctFinal);
 
+  const updatedFact = updateFact(t.subject, t.einstellig, 1, allCorrect);
+  cloudUpsertFact(t.subject, t.einstellig, 1, updatedFact);
+  cloudLogAnswer({ subject:t.subject, reihe:t.einstellig, position:1, given:vFinal, correct:allCorrect, skipped:false, mode:'schriftlich' });
+
   if(allCorrect){
     state.score += 10;
     saveState();
@@ -591,6 +603,10 @@ function submitSchriftlichAnswer(){
 function handleSchriftlichSkip(){
   if(!schriftlichQuiz || schriftlichQuiz.lockInput) return;
   schriftlichQuiz.lockInput = true;
+  const t = currentSchriftlichTask();
+  const updatedFact = skipFact(t.subject, t.einstellig, 1);
+  cloudUpsertFact(t.subject, t.einstellig, 1, updatedFact);
+  cloudLogAnswer({ subject:t.subject, reihe:t.einstellig, position:1, given:null, correct:false, skipped:true, mode:'schriftlich' });
   document.getElementById('schriftlich-feedback').textContent = 'Übersprungen – kommt später nochmal dran.';
   advanceSchriftlichQueue(true);
 }

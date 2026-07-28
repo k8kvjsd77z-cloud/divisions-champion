@@ -348,8 +348,8 @@ async function loadDashboardData(){
 function hydrateStateFromRows(factRows, progressRow){
   state = defaultState();
   factRows.forEach(r=>{
-    if(!state.subjects[r.subject]) return;
-    state.subjects[r.subject].facts[factKey(r.reihe, r.position)] = {
+    if(!ALL_SUBJECTS.includes(r.subject)) return;
+    factsBucket(r.subject).facts[factKey(r.reihe, r.position)] = {
       box:r.box, correct:r.correct_count, wrong:r.wrong_count, skip:r.skip_count||0, seen:r.seen
     };
   });
@@ -435,8 +435,20 @@ function compactSummaryHTML(){
   `;
 }
 
+// Schriftliche Fächer haben keine feste Aufgaben-Position (die zweistellige
+// Zahl ist jedes Mal neu zufällig) - dort ist "position" immer fest 1 und
+// "reihe" der einstellige Faktor/Divisor. Damit funktionieren dieselben
+// Auswertungsfunktionen (Fehlerquote je Reihe, schwächste Aufgaben, ...) für
+// alle vier Fächer gleich.
 function allFactsList(subject){
   const list = [];
+  if(WRITTEN_SUBJECTS.includes(subject)){
+    for(let r=WRITTEN_REIHE_MIN; r<=WRITTEN_REIHE_MAX; r++){
+      const f = getFact(subject, r, 1);
+      if(f.seen) list.push({ subject, reihe:r, position:1, promptText: writtenReiheLabel(subject, r), answer:'', fact:f });
+    }
+    return list;
+  }
   for(let r=1;r<=12;r++){
     for(let p=1;p<=12;p++){
       const f = getFact(subject, r, p);
@@ -446,14 +458,14 @@ function allFactsList(subject){
   return list;
 }
 
-// Baut den CSV-Text aus allen geübten Aufgaben (beide Fächer) - als reine
+// Baut den CSV-Text aus allen geübten Aufgaben (alle vier Fächer) - als reine
 // Funktion ohne DOM-Nebenwirkungen, damit sie sich einfach testen lässt.
 function buildResultsCSVString(){
   const rows = [['Fach','Reihe','Aufgabe','Ergebnis','Box-Stufe','Richtig','Falsch','Übersprungen']];
-  SUBJECTS.forEach(subject=>{
+  ALL_SUBJECTS.forEach(subject=>{
     allFactsList(subject).forEach(t=>{
       rows.push([
-        SUBJECT_LABELS[subject],
+        ALL_SUBJECT_LABELS[subject],
         t.reihe,
         t.promptText.replace(/\s*=\s*$/, ''),
         t.answer,
@@ -487,12 +499,20 @@ function downloadResultsCSV(){
 }
 
 function computePerReiheErrorRates(subject){
+  const isWritten = WRITTEN_SUBJECTS.includes(subject);
+  const minR = isWritten ? WRITTEN_REIHE_MIN : 1;
+  const maxR = isWritten ? WRITTEN_REIHE_MAX : 12;
   const rows = [];
-  for(let r=1; r<=12; r++){
+  for(let r=minR; r<=maxR; r++){
     let correct=0, wrong=0;
-    for(let p=1;p<=12;p++){
-      const f = getFact(subject, r, p);
-      correct += f.correct||0; wrong += f.wrong||0;
+    if(isWritten){
+      const f = getFact(subject, r, 1);
+      correct = f.correct||0; wrong = f.wrong||0;
+    } else {
+      for(let p=1;p<=12;p++){
+        const f = getFact(subject, r, p);
+        correct += f.correct||0; wrong += f.wrong||0;
+      }
     }
     const attempts = correct+wrong;
     rows.push({ reihe:r, attempts, errorRate: attempts ? wrong/attempts : null });
@@ -535,41 +555,49 @@ function computeAccuracyTrend(subject){
 
 function computeInsights(subject){
   const insights = [];
+  const isWritten = WRITTEN_SUBJECTS.includes(subject);
   const log = lastLog.filter(r=>r.subject===subject && !r.skipped);
 
-  const tally = {}, example = {};
-  log.forEach(r=>{
-    if(r.correct) return;
-    const cat = classifyMistake(r);
-    if(!cat) return;
-    tally[cat] = (tally[cat]||0) + 1;
-    if(!example[cat]) example[cat] = r;
-  });
-  Object.keys(tally).sort((a,b)=>tally[b]-tally[a]).slice(0,2).forEach(cat=>{
-    if(tally[cat] < 2) return;
-    const label = MISTAKE_LABELS[cat] || MISTAKE_LABELS.sonstige;
-    insights.push({ title: `${label.title} (${tally[cat]}×)`, detail: label.detail(example[cat]) });
-  });
+  // Die Verzählt-/Nachbarreihe-Mustererkennung und der Klein-/Groß-Vergleich
+  // basieren auf der "position" einer Einzelaufgabe (zweiter Faktor bzw.
+  // Ergebnis) - das gibt es bei den schriftlichen Fächern nicht (position
+  // ist dort immer fest 1), deshalb nur für Division/Multiplikation.
+  if(!isWritten){
+    const tally = {}, example = {};
+    log.forEach(r=>{
+      if(r.correct) return;
+      const cat = classifyMistake(r);
+      if(!cat) return;
+      tally[cat] = (tally[cat]||0) + 1;
+      if(!example[cat]) example[cat] = r;
+    });
+    Object.keys(tally).sort((a,b)=>tally[b]-tally[a]).slice(0,2).forEach(cat=>{
+      if(tally[cat] < 2) return;
+      const label = MISTAKE_LABELS[cat] || MISTAKE_LABELS.sonstige;
+      insights.push({ title: `${label.title} (${tally[cat]}×)`, detail: label.detail(example[cat]) });
+    });
 
-  let lowC=0, lowW=0, highC=0, highW=0;
-  allFactsList(subject).forEach(t=>{
-    if(t.position<=6){ lowC+=t.fact.correct; lowW+=t.fact.wrong; }
-    else { highC+=t.fact.correct; highW+=t.fact.wrong; }
-  });
-  const lowAttempts=lowC+lowW, highAttempts=highC+highW;
-  if(lowAttempts>=8 && highAttempts>=8){
-    const lowRate=lowW/lowAttempts, highRate=highW/highAttempts;
-    if(Math.abs(highRate-lowRate)>=0.12){
-      const harder = highRate>lowRate ? 'größeren' : 'kleineren';
-      const easier = highRate>lowRate ? 'kleineren' : 'größeren';
-      const harderPct = Math.round(Math.max(highRate,lowRate)*100);
-      const easierPct = Math.round(Math.min(highRate,lowRate)*100);
-      insights.push({
-        title: `Tut sich bei ${harder} Ergebnissen schwerer`,
-        detail: `Bei Ergebnissen ${harder==='größeren'?'ab 7':'bis 6'} liegt die Fehlerquote bei ${harderPct}%, bei ${easier==='größeren'?'ab 7':'bis 6'} nur bei ${easierPct}%.`
-      });
+    let lowC=0, lowW=0, highC=0, highW=0;
+    allFactsList(subject).forEach(t=>{
+      if(t.position<=6){ lowC+=t.fact.correct; lowW+=t.fact.wrong; }
+      else { highC+=t.fact.correct; highW+=t.fact.wrong; }
+    });
+    const lowAttempts=lowC+lowW, highAttempts=highC+highW;
+    if(lowAttempts>=8 && highAttempts>=8){
+      const lowRate=lowW/lowAttempts, highRate=highW/highAttempts;
+      if(Math.abs(highRate-lowRate)>=0.12){
+        const harder = highRate>lowRate ? 'größeren' : 'kleineren';
+        const easier = highRate>lowRate ? 'kleineren' : 'größeren';
+        const harderPct = Math.round(Math.max(highRate,lowRate)*100);
+        const easierPct = Math.round(Math.min(highRate,lowRate)*100);
+        insights.push({
+          title: `Tut sich bei ${harder} Ergebnissen schwerer`,
+          detail: `Bei Ergebnissen ${harder==='größeren'?'ab 7':'bis 6'} liegt die Fehlerquote bei ${harderPct}%, bei ${easier==='größeren'?'ab 7':'bis 6'} nur bei ${easierPct}%.`
+        });
+      }
     }
   }
+
   const skipCount = allFactsList(subject).reduce((s,t)=>s+t.fact.skip,0);
   if(skipCount >= 5){
     insights.push({
@@ -580,44 +608,62 @@ function computeInsights(subject){
   return insights;
 }
 
-// Schriftliche Fächer erzeugen jede Aufgabe frisch zufällig (kein fester
-// Aufgabenpool), deshalb gibt es dort keine Einzelaufgaben-Statistik wie bei
-// Division/Multiplikation - nur den Paket-/Sterne-Fortschritt je Paket.
-function renderWrittenSubjectSectionHTML(subject){
-  const packages = state.written[subject].packages;
-  const completedCount = Object.keys(packages).filter(n=>packages[n].completed).length;
-  const stars = totalWrittenStars(subject);
-  const maxStars = WRITTEN_PACKAGE_COUNT * 3;
+// Paket-/Sterne-Fortschritt, einheitlich für alle vier Fächer. Bei den
+// schriftlichen Fächern ist die Gesamtzahl fest (5 Pakete), bei Division/
+// Multiplikation offen (10 Curriculum-Pakete + beliebig viele Wiederholungs-
+// Pakete) - deshalb dort keine "von Y"-Angabe.
+function packageStatsFor(subject){
+  const isWritten = WRITTEN_SUBJECTS.includes(subject);
+  const packages = isWritten ? state.written[subject].packages : state.subjects[subject].packages;
+  const completedCount = Object.values(packages).filter(p=>p && p.completed).length;
+  const stars = isWritten ? totalWrittenStars(subject) : totalStars(subject);
+  if(isWritten){
+    return { completedLabel: `${completedCount} / ${WRITTEN_PACKAGE_COUNT}`, starsLabel: `${stars} / ${WRITTEN_PACKAGE_COUNT*3}` };
+  }
+  return { completedLabel: `${completedCount}`, starsLabel: `${stars}` };
+}
+
+function packageOverviewRows(subject){
+  const isWritten = WRITTEN_SUBJECTS.includes(subject);
   let rows = '';
-  for(let n=1; n<=WRITTEN_PACKAGE_COUNT; n++){
+  if(isWritten){
+    const packages = state.written[subject].packages;
+    for(let n=1; n<=WRITTEN_PACKAGE_COUNT; n++){
+      const p = packages[n];
+      rows += `<li><span>Paket ${n}</span><span class="pct" style="color:var(--text-primary);">${p && p.completed ? starString(p.stars) : '– noch nicht gespielt'}</span></li>`;
+    }
+    return rows;
+  }
+  const packages = state.subjects[subject].packages;
+  for(let n=1; n<=CURRICULUM_PACKAGE_COUNT; n++){
     const p = packages[n];
     rows += `<li><span>Paket ${n}</span><span class="pct" style="color:var(--text-primary);">${p && p.completed ? starString(p.stars) : '– noch nicht gespielt'}</span></li>`;
   }
-  return `
-    <div class="stat-grid">
-      <div class="stat-tile"><b>${completedCount} / ${WRITTEN_PACKAGE_COUNT}</b><span>Pakete abgeschlossen</span></div>
-      <div class="stat-tile"><b>${stars} / ${maxStars}</b><span>Sterne gesamt</span></div>
-    </div>
-    <div class="card">
-      <h2>Paket-Übersicht</h2>
-      <ul class="weak-list">${rows}</ul>
-    </div>
-    <p class="sub">Bei schriftlichen Aufgaben wird jede Aufgabe neu zufällig erzeugt - deshalb gibt es hier (anders als bei Division/Multiplikation) keine Fehlerquote je Einzelaufgabe, nur den Paket-Fortschritt oben.</p>
-  `;
+  Object.keys(packages).map(Number)
+    .filter(n=>n>CURRICULUM_PACKAGE_COUNT && packages[n].completed)
+    .sort((a,b)=>a-b)
+    .forEach(n=>{
+      rows += `<li><span>Wiederholung ${n-CURRICULUM_PACKAGE_COUNT}</span><span class="pct" style="color:var(--text-primary);">${starString(packages[n].stars)}</span></li>`;
+    });
+  return rows;
 }
 
+// Eine gemeinsame Ansicht für alle vier Fächer: Aufgaben/Reihen geübt,
+// Trefferquote, sicher gemeistert, aktueller Stand, Pakete/Sterne,
+// Paket-Übersicht, Fehlerquote je Reihe, Trefferquote über die Zeit,
+// schwächste Aufgaben/Reihen, oft übersprungen, Auffälligkeiten.
 function renderSubjectSection(subject){
   const wrap = document.getElementById('subject-content');
-  if(WRITTEN_SUBJECTS.includes(subject)){
-    wrap.innerHTML = renderWrittenSubjectSectionHTML(subject);
-    return;
-  }
+  const isWritten = WRITTEN_SUBJECTS.includes(subject);
   const facts = allFactsList(subject);
   const totalCorrect = facts.reduce((s,t)=>s+t.fact.correct,0);
   const totalWrong = facts.reduce((s,t)=>s+t.fact.wrong,0);
   const totalAttempts = totalCorrect+totalWrong;
   const accuracy = totalAttempts ? Math.round((totalCorrect/totalAttempts)*100) : null;
   const masteredCount = facts.filter(t=>t.fact.box>=3).length;
+  const currentStand = isWritten
+    ? `Paket ${currentWrittenPackageNumber(subject)} / ${WRITTEN_PACKAGE_COUNT}`
+    : `Paket ${currentPackageNumber(subject)}`;
 
   const perReihe = computePerReiheErrorRates(subject);
   const weakest = computeWeakestFacts(subject, 8);
@@ -625,18 +671,32 @@ function renderSubjectSection(subject){
   const trend = computeAccuracyTrend(subject);
   const insights = computeInsights(subject);
   const sym = subjectSymbol(subject);
+  const pStats = packageStatsFor(subject);
+  const reiheRangeLabel = isWritten ? `${sym}${WRITTEN_REIHE_MIN} bis ${sym}${WRITTEN_REIHE_MAX}` : `${sym}1 bis ${sym}12`;
+  const itemWord = isWritten ? 'Reihen' : 'Aufgaben';
+  const itemWordSingular = isWritten ? 'Reihe' : 'Aufgabe';
 
   wrap.innerHTML = `
     <div class="stat-grid">
-      <div class="stat-tile"><b>${facts.length}</b><span>Aufgaben geübt</span></div>
+      <div class="stat-tile"><b>${facts.length}</b><span>${itemWord} geübt</span></div>
       <div class="stat-tile"><b>${accuracy===null?'–':accuracy+'%'}</b><span>Trefferquote</span></div>
       <div class="stat-tile"><b>${masteredCount}</b><span>sicher gemeistert</span></div>
-      <div class="stat-tile"><b>Paket ${currentPackageNumber(subject)}</b><span>aktueller Stand</span></div>
+      <div class="stat-tile"><b>${currentStand}</b><span>aktueller Stand</span></div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-tile"><b>${pStats.completedLabel}</b><span>Pakete abgeschlossen</span></div>
+      <div class="stat-tile"><b>${pStats.starsLabel}</b><span>Sterne gesamt</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Paket-Übersicht</h2>
+      <ul class="weak-list">${packageOverviewRows(subject)}</ul>
     </div>
 
     <div class="card">
       <h2>Fehlerquote je Reihe</h2>
-      <p class="sub" style="margin-bottom:12px;">Zeigt, bei welcher Reihe (${sym}1 bis ${sym}12) tendenziell die meisten Fehler passieren.</p>
+      <p class="sub" style="margin-bottom:12px;">Zeigt, bei welcher Reihe (${reiheRangeLabel}) tendenziell die meisten Fehler passieren.${isWritten ? ' "Reihe" steht hier für den einstelligen Faktor/Divisor - die zweistellige Zahl ist ja jedes Mal neu zufällig.' : ''}</p>
       <div class="chart-wrap" id="bar-chart"></div>
       ${tableToggle('Reihen-Tabelle anzeigen', perReiheTableHTML(perReihe, sym))}
     </div>
@@ -649,19 +709,19 @@ function renderSubjectSection(subject){
     </div>
 
     <div class="card">
-      <h2>Diese Aufgaben bereiten am meisten Mühe</h2>
+      <h2>Diese ${itemWord} bereiten am meisten Mühe</h2>
       ${weakest.length ? `<ul class="weak-list">${weakest.map(t=>`
-        <li><span>${t.promptText} ${t.answer}</span>
+        <li><span>${t.promptText}${t.answer!==''?' '+t.answer:''}</span>
         <span class="pct">${t.fact.wrong} von ${t.fact.wrong+t.fact.correct} falsch</span></li>`).join('')}</ul>`
-        : '<p class="sub">Bisher keine auffälligen Aufgaben – weiter so!</p>'}
+        : `<p class="sub">Bisher keine auffälligen ${itemWord} – weiter so!</p>`}
     </div>
 
     <div class="card">
       <h2>Oft übersprungen</h2>
       ${oftenSkipped.length ? `<ul class="weak-list">${oftenSkipped.map(t=>`
-        <li><span>${t.promptText} ${t.answer}</span>
+        <li><span>${t.promptText}${t.answer!==''?' '+t.answer:''}</span>
         <span class="pct skip">${t.fact.skip}× übersprungen</span></li>`).join('')}</ul>`
-        : '<p class="sub">Bisher keine Aufgabe auffällig oft übersprungen.</p>'}
+        : `<p class="sub">Bisher keine ${itemWordSingular} auffällig oft übersprungen.</p>`}
     </div>
 
     <div class="insight-box">

@@ -78,13 +78,22 @@ const WRITTEN_FACTOR_POOLS = [
   [2,3,4,5,6,7,8],
   [2,3,4,5,6,7,8,9]
 ];
+// Für die Fehlerquote-je-Reihe-Auswertung im Dashboard: welcher Reihen-Bereich
+// bei den schriftlichen Fächern überhaupt vorkommen kann (aus den Faktor-
+// Töpfen oben abgeleitet, statt fest verdrahtet).
+const WRITTEN_REIHE_MIN = Math.min(...WRITTEN_FACTOR_POOLS.flat());
+const WRITTEN_REIHE_MAX = Math.max(...WRITTEN_FACTOR_POOLS.flat());
 
 /* ---------- Zustand (lokaler Cache) ---------- */
 function defaultSubjectState(){
   return { packages: {}, facts: {} };
 }
 function defaultWrittenSubjectState(){
-  return { packages: {} };
+  // "facts" hier: ein Eintrag pro Reihe (einstelliger Faktor/Divisor 2-9),
+  // nicht pro Einzelaufgabe - die zweistellige Zahl wird ja jedes Mal neu
+  // zufällig erzeugt. So bekommt das Eltern-Dashboard trotzdem eine
+  // Fehlerquote-je-Reihe-Auswertung wie bei Division/Multiplikation.
+  return { packages: {}, facts: {} };
 }
 function defaultState(){
   const subjects = {};
@@ -111,7 +120,10 @@ function loadState(){
     });
     WRITTEN_SUBJECTS.forEach(s=>{
       const parsedSub = (parsed.written && parsed.written[s]) || {};
-      merged.written[s] = { packages: Object.assign({}, parsedSub.packages || {}) };
+      merged.written[s] = {
+        packages: Object.assign({}, parsedSub.packages || {}),
+        facts: Object.assign({}, parsedSub.facts || {})
+      };
     });
     return merged;
   }catch(e){ return defaultState(); }
@@ -194,14 +206,22 @@ function starString(n){
 /* ---------- Gedächtnis pro Aufgabe ---------- */
 function factKey(reihe, position){ return reihe + '_' + position; }
 
+// Division/Multiplikation führen ihre Fakten in state.subjects, die
+// schriftlichen Fächer in state.written - dieser Helfer findet den
+// richtigen Eimer, damit getFact/updateFact/skipFact für alle vier
+// Fächer gleich funktionieren.
+function factsBucket(subject){
+  return WRITTEN_SUBJECTS.includes(subject) ? state.written[subject] : state.subjects[subject];
+}
+
 function getFact(subject, reihe, position){
-  const f = state.subjects[subject].facts[factKey(reihe, position)];
+  const f = factsBucket(subject).facts[factKey(reihe, position)];
   return f || { box:0, correct:0, wrong:0, skip:0, seen:false };
 }
 
 function updateFact(subject, reihe, position, correct){
   const key = factKey(reihe, position);
-  const facts = state.subjects[subject].facts;
+  const facts = factsBucket(subject).facts;
   const f = facts[key] || { box:0, correct:0, wrong:0, skip:0, seen:false };
   f.seen = true;
   if(correct){
@@ -217,7 +237,7 @@ function updateFact(subject, reihe, position, correct){
 
 function skipFact(subject, reihe, position){
   const key = factKey(reihe, position);
-  const facts = state.subjects[subject].facts;
+  const facts = factsBucket(subject).facts;
   const f = facts[key] || { box:0, correct:0, wrong:0, skip:0, seen:false };
   f.seen = true;
   f.skip++;
@@ -258,7 +278,13 @@ function analyzeWeakAreas(subject){
   return perTable.slice(0,2).map(e=>e[0]);
 }
 
-function subjectSymbol(subject){ return subject === 'division' ? '÷' : '×'; }
+function subjectSymbol(subject){ return subject.toLowerCase().includes('division') ? '÷' : '×'; }
+
+// Anzeige-Label für eine "Reihe" bei den schriftlichen Fächern im Dashboard -
+// dort gibt es keine feste Einzelaufgabe, nur den einstelligen Faktor/Divisor.
+function writtenReiheLabel(subject, reihe){
+  return `${subjectSymbol(subject)}${reihe}-Reihe (schriftlich)`;
+}
 
 function akademieHintText(subject){
   const weak = analyzeWeakAreas(subject);
@@ -370,6 +396,7 @@ function buildWrittenTask(subject, packageNumber){
   return {
     subject,
     promptText: `${dividend} ÷ ${einstellig} =`,
+    einstellig,
     step1: { text: `${teil1} ÷ ${einstellig} =`, answer: zehnerTeil },
     step2: { text: `${teil2} ÷ ${einstellig} =`, answer: einerTeil },
     finalAnswer: zehnerTeil + einerTeil
@@ -548,9 +575,9 @@ async function cloudLoadIntoState(){
     const cloudFactKeys = new Set();
     if(factRows){
       factRows.forEach(r=>{
-        if(!state.subjects[r.subject]) return;
+        if(!ALL_SUBJECTS.includes(r.subject)) return;
         cloudFactKeys.add(r.subject + '|' + factKey(r.reihe, r.position));
-        state.subjects[r.subject].facts[factKey(r.reihe, r.position)] = {
+        factsBucket(r.subject).facts[factKey(r.reihe, r.position)] = {
           box: r.box, correct: r.correct_count, wrong: r.wrong_count,
           skip: r.skip_count||0, seen: r.seen
         };
@@ -573,10 +600,10 @@ async function cloudLoadIntoState(){
     // einen früheren Sync-Fehler) nie in der Cloud ankamen, jetzt nachholen.
     // So gehen bereits gespielte Ergebnisse nicht dauerhaft verloren, sobald
     // das Gerät das nächste Mal online ist.
-    SUBJECTS.forEach(s=>{
-      Object.keys(state.subjects[s].facts).forEach(key=>{
+    ALL_SUBJECTS.forEach(s=>{
+      Object.keys(factsBucket(s).facts).forEach(key=>{
         if(cloudFactKeys.has(s + '|' + key)) return;
-        const fact = state.subjects[s].facts[key];
+        const fact = factsBucket(s).facts[key];
         if(!fact.seen) return;
         const [reiheStr, positionStr] = key.split('_');
         cloudUpsertFact(s, Number(reiheStr), Number(positionStr), fact);
