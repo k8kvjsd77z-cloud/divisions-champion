@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Milli Power Akademie</title>
+<title>Madivi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
 <style>
@@ -42,6 +42,10 @@
   h2{font-size:1.3rem; margin:0 0 14px; font-weight:700;}
   p.sub{margin:0 0 20px; opacity:.75; font-size:1.02rem;}
   .mascot{font-size:60px; line-height:1; margin-bottom:8px;}
+  .app-brand{
+    font-size:.8rem; font-weight:800; letter-spacing:2px; text-transform:uppercase;
+    color:var(--ink); opacity:.4; margin-bottom:2px;
+  }
 
   button{
     font-family:inherit; cursor:pointer; border:none; border-radius:16px;
@@ -199,7 +203,7 @@
   <div class="screen active" id="screen-login">
     <div class="card">
       <div class="mascot">🐯🔒</div>
-      <h1>Milli Power Akademie</h1>
+      <h1>Madivi</h1>
       <p class="sub">Bitte anmelden, um zu spielen.</p>
       <input class="login-input" id="login-username" type="text" placeholder="Benutzername" autocomplete="username">
       <input class="login-input" id="login-password" type="password" placeholder="Passwort" autocomplete="current-password">
@@ -212,6 +216,7 @@
   <div class="screen" id="screen-subject">
     <div class="card">
       <div class="mascot">🐯</div>
+      <div class="app-brand">Madivi</div>
       <h1>Hallo Milli!</h1>
       <p class="sub">Papalino ist dein Trainer. Was möchtest du heute üben?</p>
       <button class="subject-btn subject-division" onclick="chooseSubject('division')">
@@ -255,7 +260,7 @@
       </div>
       <div class="package-path" id="written-package-path"></div>
       <br>
-      <span class="footer-link" onclick="goToSubjectSelect()">Anderes Fach wählen</span>
+      <span class="footer-link" onclick="goToSubjectSelect()">← Zurück</span>
     </div>
   </div>
 
@@ -272,7 +277,7 @@
       <div class="hint-box" id="akademie-hint"></div>
       <button class="hub-btn btn-akademie" onclick="startAkademie()">🐯 Milli Power Akademie</button>
       <br>
-      <span class="footer-link" onclick="goToSubjectSelect()">Anderes Fach wählen</span>
+      <span class="footer-link" onclick="goToSubjectSelect()">← Zurück</span>
     </div>
   </div>
 

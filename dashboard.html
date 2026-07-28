@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Eltern-Dashboard – Milli Power Akademie</title>
+<title>Eltern-Dashboard – Madivi</title>
 <style>
   /* Bewusst immer hell, unabhängig vom Geräte-Dark-Mode - die Auswertung
      soll immer gut lesbar sein (dunkler Text auf weißem Grund). Auf :root
@@ -187,8 +187,8 @@
   <div class="screen" id="screen-dashboard">
     <div class="top-row">
       <div>
-        <h1>🐯 Milli Power Akademie – Auswertung</h1>
-        <p class="sub">Wie Milli bei Division und Multiplikation steht.</p>
+        <h1>🐯 Madivi – Auswertung</h1>
+        <p class="sub">Wie Milli in allen Fächern steht.</p>
       </div>
       <div style="text-align:right;">
         <span class="refresh-link" onclick="loadDashboardData()">Jetzt aktualisieren</span>
@@ -357,6 +357,9 @@ function hydrateStateFromRows(factRows, progressRow){
     SUBJECTS.forEach(s=>{
       if(progressRow.packages && progressRow.packages[s]) state.subjects[s].packages = progressRow.packages[s];
     });
+    WRITTEN_SUBJECTS.forEach(s=>{
+      if(progressRow.packages && progressRow.packages[s]) state.written[s].packages = progressRow.packages[s];
+    });
     state.score = progressRow.score || 0;
     state.bestStreak = progressRow.best_streak || 0;
   }
@@ -366,8 +369,9 @@ function hydrateStateFromRows(factRows, progressRow){
 function renderDashboard(){
   const content = document.getElementById('dashboard-content');
   const anyFacts = SUBJECTS.some(s=>Object.keys(state.subjects[s].facts).length>0);
+  const anyWrittenProgress = WRITTEN_SUBJECTS.some(s=>Object.keys(state.written[s].packages).length>0);
 
-  if(!anyFacts && lastLog.length === 0){
+  if(!anyFacts && !anyWrittenProgress && lastLog.length === 0){
     content.innerHTML = `
       <div class="empty-state">
         <div style="font-size:40px;">🐯</div>
@@ -377,11 +381,14 @@ function renderDashboard(){
     return;
   }
 
+  if(!ALL_SUBJECTS.includes(activeTab)) activeTab = ALL_SUBJECTS[0];
+
   content.innerHTML = `
     ${compactSummaryHTML()}
     <div class="tabs">
-      <button class="tab-btn ${activeTab==='division'?'active':''}" onclick="switchTab('division')">➗ Division</button>
-      <button class="tab-btn ${activeTab==='multiplication'?'active':''}" onclick="switchTab('multiplication')">✖️ Multiplikation</button>
+      ${ALL_SUBJECTS.map(s=>`
+        <button class="tab-btn ${activeTab===s?'active':''}" onclick="switchTab('${s}')">${SUBJECT_ICONS[s]} ${ALL_SUBJECT_LABELS[s]}</button>
+      `).join('')}
     </div>
     <div id="subject-content"></div>
   `;
@@ -395,7 +402,7 @@ function switchTab(subject){
 
 function compactSummaryHTML(){
   let totalCorrect=0, totalWrong=0;
-  const perSubjectSummary = SUBJECTS.map(s=>{
+  const factSubjectSummary = SUBJECTS.map(s=>{
     const facts = allFactsList(s);
     const correct = facts.reduce((sum,t)=>sum+t.fact.correct,0);
     const wrong = facts.reduce((sum,t)=>sum+t.fact.wrong,0);
@@ -403,6 +410,12 @@ function compactSummaryHTML(){
     const flagged = facts.filter(t=>isFlagged(t.fact)).length;
     return { subject:s, paket: currentPackageNumber(s), stars: totalStars(s), flagged };
   });
+  // Schriftliche Fächer haben keine Einzelaufgaben-Daten (jede Aufgabe wird
+  // frisch zufällig erzeugt) - hier zählt nur der Paket-/Sterne-Fortschritt.
+  const writtenSubjectSummary = WRITTEN_SUBJECTS.map(s=>({
+    subject:s, paket: currentWrittenPackageNumber(s), stars: totalWrittenStars(s), flagged: 0
+  }));
+  const perSubjectSummary = factSubjectSummary.concat(writtenSubjectSummary);
   const totalAttempts = totalCorrect+totalWrong;
   const accuracy = totalAttempts ? Math.round((totalCorrect/totalAttempts)*100) : null;
   const days = new Set(lastLog.map(r=>(r.created_at||'').slice(0,10)).filter(Boolean)).size;
@@ -415,7 +428,7 @@ function compactSummaryHTML(){
         <div class="summary-tile"><b>${days}</b><span>Übungstage insgesamt</span></div>
         <div class="summary-tile"><b>${state.score}</b><span>Punkte gesamt</span></div>
         ${perSubjectSummary.map(p=>`
-          <div class="summary-tile"><b>Paket ${p.paket}</b><span>${SUBJECT_LABELS[p.subject]} · ${p.stars} ⭐${p.flagged?` · ${p.flagged} zu wiederholen`:''}</span></div>
+          <div class="summary-tile"><b>Paket ${p.paket}</b><span>${ALL_SUBJECT_LABELS[p.subject]} · ${p.stars} ⭐${p.flagged?` · ${p.flagged} zu wiederholen`:''}</span></div>
         `).join('')}
       </div>
     </div>
@@ -567,8 +580,38 @@ function computeInsights(subject){
   return insights;
 }
 
+// Schriftliche Fächer erzeugen jede Aufgabe frisch zufällig (kein fester
+// Aufgabenpool), deshalb gibt es dort keine Einzelaufgaben-Statistik wie bei
+// Division/Multiplikation - nur den Paket-/Sterne-Fortschritt je Paket.
+function renderWrittenSubjectSectionHTML(subject){
+  const packages = state.written[subject].packages;
+  const completedCount = Object.keys(packages).filter(n=>packages[n].completed).length;
+  const stars = totalWrittenStars(subject);
+  const maxStars = WRITTEN_PACKAGE_COUNT * 3;
+  let rows = '';
+  for(let n=1; n<=WRITTEN_PACKAGE_COUNT; n++){
+    const p = packages[n];
+    rows += `<li><span>Paket ${n}</span><span class="pct" style="color:var(--text-primary);">${p && p.completed ? starString(p.stars) : '– noch nicht gespielt'}</span></li>`;
+  }
+  return `
+    <div class="stat-grid">
+      <div class="stat-tile"><b>${completedCount} / ${WRITTEN_PACKAGE_COUNT}</b><span>Pakete abgeschlossen</span></div>
+      <div class="stat-tile"><b>${stars} / ${maxStars}</b><span>Sterne gesamt</span></div>
+    </div>
+    <div class="card">
+      <h2>Paket-Übersicht</h2>
+      <ul class="weak-list">${rows}</ul>
+    </div>
+    <p class="sub">Bei schriftlichen Aufgaben wird jede Aufgabe neu zufällig erzeugt - deshalb gibt es hier (anders als bei Division/Multiplikation) keine Fehlerquote je Einzelaufgabe, nur den Paket-Fortschritt oben.</p>
+  `;
+}
+
 function renderSubjectSection(subject){
   const wrap = document.getElementById('subject-content');
+  if(WRITTEN_SUBJECTS.includes(subject)){
+    wrap.innerHTML = renderWrittenSubjectSectionHTML(subject);
+    return;
+  }
   const facts = allFactsList(subject);
   const totalCorrect = facts.reduce((s,t)=>s+t.fact.correct,0);
   const totalWrong = facts.reduce((s,t)=>s+t.fact.wrong,0);

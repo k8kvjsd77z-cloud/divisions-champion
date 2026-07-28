@@ -56,6 +56,17 @@ const WRITTEN_INTRO_EXAMPLES = {
     { text: 'Ergebnis = 26', final: true }
   ]
 };
+// Für Stellen (z.B. Eltern-Dashboard), die automatisch ALLE Fächer anzeigen
+// sollen - auch neu hinzugefügte - statt sie einzeln aufzuzählen.
+const ALL_SUBJECTS = SUBJECTS.concat(WRITTEN_SUBJECTS);
+const ALL_SUBJECT_LABELS = Object.assign({}, SUBJECT_LABELS, WRITTEN_SUBJECT_LABELS);
+const SUBJECT_ICONS = {
+  division: '➗',
+  multiplication: '✖️',
+  writtenMultiplication: '✍️',
+  writtenDivision: '✍️'
+};
+
 const WRITTEN_PACKAGE_COUNT = 5;
 const WRITTEN_PACKAGE_SIZE = 5;
 // Welcher einstellige Faktor/Divisor je Paket im Topf ist - wächst wie bei
