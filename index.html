@@ -105,6 +105,11 @@
     margin:12px 0; color:#8a5a00; font-weight:700; line-height:1.4;
   }
 
+  /* Lösungsweg-Erklärung vor dem Einstieg in ein schriftliches Fach */
+  .lernbox{ background:#f5f6fb; border-radius:16px; padding:14px 20px; margin:18px 0; text-align:left; }
+  .lernbox-line{ font-size:1.25rem; font-weight:700; padding:5px 0; }
+  .lernbox-line.final{ border-top:2px dashed #dcdfe8; margin-top:6px; padding-top:12px; color:#1f8b3b; }
+
   /* Quiz screen */
   .quiz-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:.9rem; opacity:.75; }
   .progress-bar{ height:10px; background:#eef1f8; border-radius:8px; overflow:hidden; margin-bottom:18px; }
@@ -228,6 +233,19 @@
     </div>
   </div>
 
+  <!-- SCHRIFTLICH INTRO: Lösungsweg-Erklärung, jedes Mal beim Einstieg gezeigt -->
+  <div class="screen" id="screen-schriftlich-intro">
+    <div class="card">
+      <div class="mascot">🐯</div>
+      <h1 id="schriftlich-intro-title">Schriftliche Multiplikation</h1>
+      <p class="sub">So geht der Rechenweg:</p>
+      <div class="lernbox" id="schriftlich-intro-box"></div>
+      <button class="btn-primary" onclick="goToWrittenHub()">Los geht's, Milli!</button>
+      <br>
+      <span class="footer-link" onclick="goToSubjectSelect()">← Zurück</span>
+    </div>
+  </div>
+
   <!-- WRITTEN SUBJECT HUB -->
   <div class="screen" id="screen-written-hub">
     <div class="card">
@@ -289,7 +307,7 @@
       </div>
       <button class="skip-btn" onclick="handleSkip()">⏭ Überspringen</button>
       <br>
-      <span class="footer-link" onclick="goToHub()">Abbrechen</span>
+      <span class="footer-link" onclick="goToSubjectSelect()">← Zurück</span>
     </div>
   </div>
 
@@ -323,7 +341,7 @@
       <button class="btn-primary" onclick="submitSchriftlichAnswer()">Prüfen</button>
       <button class="skip-btn" onclick="handleSchriftlichSkip()">⏭ Überspringen</button>
       <br>
-      <span class="footer-link" onclick="goToWrittenHubFromQuiz()">Abbrechen</span>
+      <span class="footer-link" onclick="goToSubjectSelect()">← Zurück</span>
     </div>
   </div>
 
@@ -376,7 +394,16 @@ let currentWrittenSubject = 'writtenMultiplication';
 
 function chooseWrittenSubject(subject){
   currentWrittenSubject = subject;
-  goToWrittenHub();
+  goToWrittenIntro();
+}
+
+function goToWrittenIntro(){
+  document.getElementById('schriftlich-intro-title').textContent = WRITTEN_SUBJECT_LABELS[currentWrittenSubject];
+  document.getElementById('schriftlich-intro-box').innerHTML =
+    WRITTEN_INTRO_EXAMPLES[currentWrittenSubject].map(l=>
+      `<div class="lernbox-line${l.final ? ' final' : ''}">${l.text}</div>`
+    ).join('');
+  showScreen('screen-schriftlich-intro');
 }
 
 function goToWrittenHub(){
@@ -385,10 +412,6 @@ function goToWrittenHub(){
   document.getElementById('written-hub-stars').textContent = totalWrittenStars(currentWrittenSubject);
   renderWrittenPackagePath();
   showScreen('screen-written-hub');
-}
-
-function goToWrittenHubFromQuiz(){
-  goToWrittenHub();
 }
 
 function renderWrittenPackagePath(){

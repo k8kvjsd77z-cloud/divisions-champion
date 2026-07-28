@@ -39,6 +39,23 @@ const WRITTEN_SUBJECT_LABELS = {
   writtenMultiplication: 'Schriftliche Multiplikation',
   writtenDivision: 'Schriftliche Division'
 };
+// Fester Beispiel-Rechenweg, der jedes Mal gezeigt wird, wenn Milli neu in
+// eines der beiden schriftlichen Fächer einsteigt (nicht an die konkreten
+// Zahlen des jeweiligen Pakets gekoppelt, nur zur Erinnerung an die Methode).
+const WRITTEN_INTRO_EXAMPLES = {
+  writtenMultiplication: [
+    { text: '2 × 44 = ?' },
+    { text: '2 × 40 = 80' },
+    { text: '2 × 4 = 8' },
+    { text: '80 + 8 = 88', final: true }
+  ],
+  writtenDivision: [
+    { text: '78 ÷ 3 = ?' },
+    { text: '60 ÷ 3 = 20' },
+    { text: '18 ÷ 3 = 6' },
+    { text: 'Ergebnis = 26', final: true }
+  ]
+};
 const WRITTEN_PACKAGE_COUNT = 5;
 const WRITTEN_PACKAGE_SIZE = 5;
 // Welcher einstellige Faktor/Divisor je Paket im Topf ist - wächst wie bei
