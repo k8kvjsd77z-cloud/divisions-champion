@@ -147,6 +147,16 @@
   .insight-item .title{font-weight:700; margin-bottom:3px;}
   .insight-item .detail{color:var(--text-secondary); font-size:.9rem; line-height:1.5;}
 
+  /* Warnt sichtbar, wenn Pakete gespielt wurden, aber keine Einzelaufgaben-
+     Daten dazu ankamen (z.B. wegen einer fehlenden DB-Migration oder einem
+     Sync-Problem) - damit das nicht mehr unbemerkt bleibt. */
+  .tracking-warning{
+    background:#fff3e0; border:1px solid #ffb74d; border-radius:14px;
+    padding:16px 18px; margin-bottom:20px; color:#8a5a00;
+  }
+  .tracking-warning b{display:block; margin-bottom:6px; font-size:1.05rem;}
+  .tracking-warning p{margin:0; font-size:.9rem; line-height:1.5;}
+
   .empty-state{
     text-align:center; padding:60px 20px; color:var(--text-secondary);
   }
@@ -384,6 +394,7 @@ function renderDashboard(){
   if(!ALL_SUBJECTS.includes(activeTab)) activeTab = ALL_SUBJECTS[0];
 
   content.innerHTML = `
+    ${trackingGapBannerHTML()}
     ${compactSummaryHTML()}
     <div class="tabs">
       ${ALL_SUBJECTS.map(s=>`
@@ -393,6 +404,22 @@ function renderDashboard(){
     <div id="subject-content"></div>
   `;
   renderSubjectSection(activeTab);
+}
+
+// Sichtbar direkt oben auf dem Dashboard (nicht erst im jeweiligen Tab
+// versteckt), damit ein Tracking-Ausfall sofort auffällt, statt erst auf
+// Nachfrage entdeckt zu werden.
+function trackingGapBannerHTML(){
+  const affected = ALL_SUBJECTS.filter(hasTrackingGap);
+  if(affected.length === 0) return '';
+  return `
+    <div class="tracking-warning">
+      <b>⚠️ Keine Detail-Daten bei: ${affected.map(s=>ALL_SUBJECT_LABELS[s]).join(', ')}</b>
+      <p>Es wurden dort schon Pakete gespielt, aber keine einzelnen Aufgaben/Reihen aufgezeichnet - das deutet auf ein
+      Sync-Problem hin (z.B. eine fehlende Datenbank-Migration, ein RLS-Problem oder ein Gerät, das offline war).
+      Öffne den jeweiligen Tab unten für Details.</p>
+    </div>
+  `;
 }
 
 function switchTab(subject){
@@ -648,6 +675,31 @@ function packageOverviewRows(subject){
   return rows;
 }
 
+// Erkennt genau die Situation, die uns bei Schriftliche Division passiert
+// ist: Pakete wurden gespielt (Sterne/Fortschritt vorhanden), aber es kamen
+// keine Einzelaufgaben-Daten an - egal ob wegen einer fehlenden DB-Migration,
+// RLS-Problemen oder weil das Gerät offline war. Ohne diesen Hinweis würde
+// das nur auffallen, wenn man zufällig nachfragt.
+function hasTrackingGap(subject){
+  const isWritten = WRITTEN_SUBJECTS.includes(subject);
+  const packages = isWritten ? state.written[subject].packages : state.subjects[subject].packages;
+  const anyCompleted = Object.values(packages).some(p=>p && p.completed);
+  return anyCompleted && allFactsList(subject).length === 0;
+}
+
+function trackingGapWarningHTML(subject){
+  const itemWord = WRITTEN_SUBJECTS.includes(subject) ? 'Reihen' : 'Aufgaben';
+  return `
+    <div class="tracking-warning">
+      <b>⚠️ Keine Detail-Daten für ${ALL_SUBJECT_LABELS[subject]}</b>
+      <p>Es wurden schon Pakete gespielt, aber keine einzelnen ${itemWord} aufgezeichnet (0 unten bei "${itemWord} geübt").
+      Das deutet auf ein Sync-Problem hin - z.B. eine fehlende Datenbank-Migration, ein RLS-Problem oder ein Gerät, das
+      offline war. Fehlerquote je Reihe, schwächste ${itemWord} und "oft übersprungen" lassen sich erst auswerten,
+      sobald wieder Daten ankommen.</p>
+    </div>
+  `;
+}
+
 // Eine gemeinsame Ansicht für alle vier Fächer: Aufgaben/Reihen geübt,
 // Trefferquote, sicher gemeistert, aktueller Stand, Pakete/Sterne,
 // Paket-Übersicht, Fehlerquote je Reihe, Trefferquote über die Zeit,
@@ -675,8 +727,10 @@ function renderSubjectSection(subject){
   const reiheRangeLabel = isWritten ? `${sym}${WRITTEN_REIHE_MIN} bis ${sym}${WRITTEN_REIHE_MAX}` : `${sym}1 bis ${sym}12`;
   const itemWord = isWritten ? 'Reihen' : 'Aufgaben';
   const itemWordSingular = isWritten ? 'Reihe' : 'Aufgabe';
+  const trackingGap = hasTrackingGap(subject);
 
   wrap.innerHTML = `
+    ${trackingGap ? trackingGapWarningHTML(subject) : ''}
     <div class="stat-grid">
       <div class="stat-tile"><b>${facts.length}</b><span>${itemWord} geübt</span></div>
       <div class="stat-tile"><b>${accuracy===null?'–':accuracy+'%'}</b><span>Trefferquote</span></div>
