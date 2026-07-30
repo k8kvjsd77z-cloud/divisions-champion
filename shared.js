@@ -32,29 +32,47 @@ const SKIP_FLAG_THRESHOLD = 1;
 
 // Schriftliche Division/Multiplikation: eigenständige Bereiche, unabhängig
 // von den Reihen-Paketen oben. Jede Aufgabe wird frisch zufällig erzeugt
-// (kein fester 144er-Aufgabenpool), deshalb gibt es hier keine Akademie/
-// Wiederholung, nur 5 feste Pakete mit je 5 Aufgaben.
-const WRITTEN_SUBJECTS = ['writtenMultiplication', 'writtenDivision'];
+// (kein fester 144er-Aufgabenpool). Je Rechenart gibt es mehrere gleichartige
+// Sessions (mehr Übungsvolumen als 5 Pakete) - jede mit eigenem Fortschritt,
+// eigenen 5 Paketen à 5 Aufgaben, und eigener Wiederholung analog zu
+// Division/Multiplikation (Paket 6+ = dynamische Wiederholungs-Pakete aus
+// den bisher auffälligen Reihen dieser Session).
+const WRITTEN_MULTIPLICATION_SUBJECTS = ['writtenMultiplication', 'writtenMultiplication2', 'writtenMultiplication3'];
+const WRITTEN_DIVISION_SUBJECTS = ['writtenDivision', 'writtenDivision2', 'writtenDivision3'];
+const WRITTEN_SUBJECTS = WRITTEN_MULTIPLICATION_SUBJECTS.concat(WRITTEN_DIVISION_SUBJECTS);
 const WRITTEN_SUBJECT_LABELS = {
   writtenMultiplication: 'Schriftliche Multiplikation',
-  writtenDivision: 'Schriftliche Division'
+  writtenMultiplication2: 'Schriftliche Multiplikation 2',
+  writtenMultiplication3: 'Schriftliche Multiplikation 3',
+  writtenDivision: 'Schriftliche Division',
+  writtenDivision2: 'Schriftliche Division 2',
+  writtenDivision3: 'Schriftliche Division 3'
 };
 // Fester Beispiel-Rechenweg, der jedes Mal gezeigt wird, wenn Milli neu in
-// eines der beiden schriftlichen Fächer einsteigt (nicht an die konkreten
-// Zahlen des jeweiligen Pakets gekoppelt, nur zur Erinnerung an die Methode).
+// eine der schriftlichen Sessions einsteigt (nicht an die konkreten Zahlen
+// des jeweiligen Pakets gekoppelt, nur zur Erinnerung an die Methode). Bei
+// der Division wird die Zerlegung des Dividenden (60, 12) inzwischen selbst
+// eingetragen - das Beispiel zeigt trotzdem den kompletten, fertigen
+// Rechenweg zum Nachlesen.
+const WRITTEN_MULTIPLICATION_INTRO = [
+  { text: '2 × 44 = ?' },
+  { text: '2 × 40 = 80' },
+  { text: '2 × 4 = 8' },
+  { text: '80 + 8 = 88', final: true }
+];
+const WRITTEN_DIVISION_INTRO = [
+  { text: '128 ÷ 4 = ?' },
+  { text: '120 ÷ 4 = 30' },
+  { text: '8 ÷ 4 = 2' },
+  { text: '30 + 2 = 32', final: true }
+];
 const WRITTEN_INTRO_EXAMPLES = {
-  writtenMultiplication: [
-    { text: '2 × 44 = ?' },
-    { text: '2 × 40 = 80' },
-    { text: '2 × 4 = 8' },
-    { text: '80 + 8 = 88', final: true }
-  ],
-  writtenDivision: [
-    { text: '78 ÷ 3 = ?' },
-    { text: '60 ÷ 3 = 20' },
-    { text: '18 ÷ 3 = 6' },
-    { text: 'Ergebnis = 26', final: true }
-  ]
+  writtenMultiplication: WRITTEN_MULTIPLICATION_INTRO,
+  writtenMultiplication2: WRITTEN_MULTIPLICATION_INTRO,
+  writtenMultiplication3: WRITTEN_MULTIPLICATION_INTRO,
+  writtenDivision: WRITTEN_DIVISION_INTRO,
+  writtenDivision2: WRITTEN_DIVISION_INTRO,
+  writtenDivision3: WRITTEN_DIVISION_INTRO
 };
 // Für Stellen (z.B. Eltern-Dashboard), die automatisch ALLE Fächer anzeigen
 // sollen - auch neu hinzugefügte - statt sie einzeln aufzuzählen.
@@ -64,9 +82,16 @@ const SUBJECT_ICONS = {
   division: '➗',
   multiplication: '✖️',
   writtenMultiplication: '✍️',
-  writtenDivision: '✍️'
+  writtenMultiplication2: '✍️',
+  writtenMultiplication3: '✍️',
+  writtenDivision: '✍️',
+  writtenDivision2: '✍️',
+  writtenDivision3: '✍️'
 };
 
+// Genau 5 feste Einstiegs-Pakete je Session (÷/× 2 bis 9 werden bis Paket 5
+// komplett eingeführt). Paket 6 und danach sind automatisch Wiederholungs-
+// Pakete, genau wie bei Division/Multiplikation ab Paket 11.
 const WRITTEN_PACKAGE_COUNT = 5;
 const WRITTEN_PACKAGE_SIZE = 5;
 // Welcher einstellige Faktor/Divisor je Paket im Topf ist - wächst wie bei
@@ -364,20 +389,66 @@ function buildGuidedPackage(subject, packageNumber){
    Ergebnis in Zehner + Einer zerlegt und beide Teile durch denselben
    Divisor geteilt (72÷6 -> 60÷6 und 12÷6) - bei größeren Divisoren kann die
    Ausgangszahl dafür auch dreistellig werden, das ist genau der Sinn der
-   Übung (große Aufgaben in einfache Teile zerlegen).
+   Übung (große Aufgaben in einfache Teile zerlegen). Bei beiden Rechenarten
+   ist die Zerlegung selbst (Zehner-/Einerteil bzw. die beiden Dividenden-
+   Teile) ein eigenes Eingabefeld - Milli soll sie selbst herleiten, nicht
+   nur die Teilergebnisse eintragen.
    ============================================================ */
+function isWrittenCurriculumPackage(packageNumber){
+  return packageNumber <= WRITTEN_PACKAGE_COUNT;
+}
+
+function writtenPackageTileLabel(n){
+  return n > WRITTEN_PACKAGE_COUNT ? `Wiederholung ${n - WRITTEN_PACKAGE_COUNT}` : `Paket ${n}`;
+}
+
+// Analog zu buildSonderblöcke, aber auf Reihen-Ebene (2-9) statt auf
+// einzelnen (reihe,position)-Fakten, da bei den schriftlichen Fächern jede
+// Aufgabe frisch zufällig erzeugt wird und es keine feste Position gibt.
+// Chunkt in Blöcke von WRITTEN_PACKAGE_SIZE, damit - wie bei Division/
+// Multiplikation - mehrere anstehende Wiederholungs-Pakete als Vorschau
+// gezeigt werden können, falls mehr als 5 Reihen gleichzeitig auffällig sind.
+function buildWrittenSonderblöcke(subject){
+  const flagged = [];
+  for(let r=WRITTEN_REIHE_MIN; r<=WRITTEN_REIHE_MAX; r++){
+    const fact = getFact(subject, r, 1);
+    if(isFlagged(fact)) flagged.push({ reihe:r, weight: weightForFact(fact) });
+  }
+  flagged.sort((a,b)=>b.weight - a.weight);
+  const reihen = flagged.map(f=>f.reihe);
+  const blocks = [];
+  for(let i=0; i<reihen.length; i+=WRITTEN_PACKAGE_SIZE){
+    blocks.push(reihen.slice(i, i+WRITTEN_PACKAGE_SIZE));
+  }
+  return blocks;
+}
+
+function writtenPackageHasContent(subject, packageNumber){
+  if(isWrittenCurriculumPackage(packageNumber)) return true;
+  return buildWrittenSonderblöcke(subject).length > 0;
+}
+
+function writtenFactorPool(subject, packageNumber){
+  if(isWrittenCurriculumPackage(packageNumber)){
+    return WRITTEN_FACTOR_POOLS[Math.min(packageNumber - 1, WRITTEN_FACTOR_POOLS.length - 1)];
+  }
+  // Wiederholungs-Paket: immer der *aktuell* auffälligste Reihen-Block dieser
+  // Session (verschiebt sich live, sobald Reihen wieder sicher sitzen) -
+  // gleiches Prinzip wie bei den normalen Division/Multiplikation-Paketen.
+  const block = buildWrittenSonderblöcke(subject)[0] || [];
+  return block.length ? block : WRITTEN_FACTOR_POOLS[WRITTEN_FACTOR_POOLS.length - 1];
+}
+
 function buildWrittenTask(subject, packageNumber){
-  const pool = WRITTEN_FACTOR_POOLS[Math.min(packageNumber - 1, WRITTEN_FACTOR_POOLS.length - 1)];
+  const pool = writtenFactorPool(subject, packageNumber);
   const einstellig = pool[Math.floor(Math.random() * pool.length)];
   const zehnerTeil = (1 + Math.floor(Math.random() * 9)) * 10; // 10,20,...,90
   const einerTeil = Math.floor(Math.random() * 10); // 0-9
   const zweistellig = zehnerTeil + einerTeil;
 
-  if(subject === 'writtenMultiplication'){
+  if(WRITTEN_MULTIPLICATION_SUBJECTS.includes(subject)){
     const teil1 = einstellig * zehnerTeil;
     const teil2 = einstellig * einerTeil;
-    // Die Zerlegung (Zehner-/Einerteil) ist hier bewusst nicht vorgegeben -
-    // Milli soll sie selbst eintragen, nicht nur die Teilprodukte.
     return {
       subject,
       promptText: `${einstellig} × ${zweistellig} =`,
@@ -389,7 +460,9 @@ function buildWrittenTask(subject, packageNumber){
   }
 
   // writtenDivision: Divisor = einstellig, Ergebnis (Quotient) = zweistellig,
-  // Ausgangszahl (Dividend) = einstellig * zweistellig.
+  // Ausgangszahl (Dividend) = einstellig * zweistellig. Die Zerlegung des
+  // Dividenden in die beiden Teile (z.B. 128 -> 120 + 8) ist selbst ein
+  // Eingabefeld, nicht mehr vorgegeben.
   const dividend = einstellig * zweistellig;
   const teil1 = einstellig * zehnerTeil;
   const teil2 = einstellig * einerTeil;
@@ -397,8 +470,8 @@ function buildWrittenTask(subject, packageNumber){
     subject,
     promptText: `${dividend} ÷ ${einstellig} =`,
     einstellig,
-    step1: { text: `${teil1} ÷ ${einstellig} =`, answer: zehnerTeil },
-    step2: { text: `${teil2} ÷ ${einstellig} =`, answer: einerTeil },
+    step1: { part: teil1, answer: zehnerTeil },
+    step2: { part: teil2, answer: einerTeil },
     finalAnswer: zehnerTeil + einerTeil
   };
 }

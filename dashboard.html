@@ -639,38 +639,37 @@ function computeInsights(subject){
 // schriftlichen Fächern ist die Gesamtzahl fest (5 Pakete), bei Division/
 // Multiplikation offen (10 Curriculum-Pakete + beliebig viele Wiederholungs-
 // Pakete) - deshalb dort keine "von Y"-Angabe.
+// Beide Fach-Arten haben jetzt dieselbe Struktur: eine feste Zahl fester
+// Einstiegs-Pakete, danach offen viele Wiederholungs-Pakete - deshalb ohne
+// feste "/N"-Obergrenze (die würde bei laufenden Wiederholungen falsch
+// aussehen, z.B. "12 / 5").
+function packagesFor(subject){
+  return WRITTEN_SUBJECTS.includes(subject) ? state.written[subject].packages : state.subjects[subject].packages;
+}
+function curriculumCountFor(subject){
+  return WRITTEN_SUBJECTS.includes(subject) ? WRITTEN_PACKAGE_COUNT : CURRICULUM_PACKAGE_COUNT;
+}
+
 function packageStatsFor(subject){
-  const isWritten = WRITTEN_SUBJECTS.includes(subject);
-  const packages = isWritten ? state.written[subject].packages : state.subjects[subject].packages;
+  const packages = packagesFor(subject);
   const completedCount = Object.values(packages).filter(p=>p && p.completed).length;
-  const stars = isWritten ? totalWrittenStars(subject) : totalStars(subject);
-  if(isWritten){
-    return { completedLabel: `${completedCount} / ${WRITTEN_PACKAGE_COUNT}`, starsLabel: `${stars} / ${WRITTEN_PACKAGE_COUNT*3}` };
-  }
+  const stars = WRITTEN_SUBJECTS.includes(subject) ? totalWrittenStars(subject) : totalStars(subject);
   return { completedLabel: `${completedCount}`, starsLabel: `${stars}` };
 }
 
 function packageOverviewRows(subject){
-  const isWritten = WRITTEN_SUBJECTS.includes(subject);
+  const packages = packagesFor(subject);
+  const curriculumCount = curriculumCountFor(subject);
   let rows = '';
-  if(isWritten){
-    const packages = state.written[subject].packages;
-    for(let n=1; n<=WRITTEN_PACKAGE_COUNT; n++){
-      const p = packages[n];
-      rows += `<li><span>Paket ${n}</span><span class="pct" style="color:var(--text-primary);">${p && p.completed ? starString(p.stars) : '– noch nicht gespielt'}</span></li>`;
-    }
-    return rows;
-  }
-  const packages = state.subjects[subject].packages;
-  for(let n=1; n<=CURRICULUM_PACKAGE_COUNT; n++){
+  for(let n=1; n<=curriculumCount; n++){
     const p = packages[n];
     rows += `<li><span>Paket ${n}</span><span class="pct" style="color:var(--text-primary);">${p && p.completed ? starString(p.stars) : '– noch nicht gespielt'}</span></li>`;
   }
   Object.keys(packages).map(Number)
-    .filter(n=>n>CURRICULUM_PACKAGE_COUNT && packages[n].completed)
+    .filter(n=>n>curriculumCount && packages[n].completed)
     .sort((a,b)=>a-b)
     .forEach(n=>{
-      rows += `<li><span>Wiederholung ${n-CURRICULUM_PACKAGE_COUNT}</span><span class="pct" style="color:var(--text-primary);">${starString(packages[n].stars)}</span></li>`;
+      rows += `<li><span>Wiederholung ${n-curriculumCount}</span><span class="pct" style="color:var(--text-primary);">${starString(packages[n].stars)}</span></li>`;
     });
   return rows;
 }
@@ -714,7 +713,7 @@ function renderSubjectSection(subject){
   const accuracy = totalAttempts ? Math.round((totalCorrect/totalAttempts)*100) : null;
   const masteredCount = facts.filter(t=>t.fact.box>=3).length;
   const currentStand = isWritten
-    ? `Paket ${currentWrittenPackageNumber(subject)} / ${WRITTEN_PACKAGE_COUNT}`
+    ? writtenPackageTileLabel(currentWrittenPackageNumber(subject))
     : `Paket ${currentPackageNumber(subject)}`;
 
   const perReihe = computePerReiheErrorRates(subject);
