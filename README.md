@@ -17,6 +17,10 @@ auftreten. Trainer ist **Papalino**, die Schülerin heißt im Spiel **Milli**.
 - `migration_v5.sql` – macht das Fach-Feld dauerhaft zukunftssicher: jedes
   künftig neu hinzugefügte Fach wird automatisch akzeptiert, ohne dass noch
   eine Migration nötig wird (nötig für Projekte, die schon auf v2/v3/v4 sind)
+- `migration_v6.sql` – speichert zusätzlich den konkreten Aufgaben-Text pro
+  Antwort, damit das Dashboard bei den schriftlichen Fächern auch die
+  einzelnen falschen/übersprungenen Aufgaben zeigen kann, nicht nur die
+  Reihen-Zusammenfassung (nötig für Projekte, die schon auf v2-v5 sind)
 
 Ohne Einrichtung läuft das Spiel sofort lokal im Browser (Fortschritt wird
 in `localStorage` gespeichert). Für dauerhafte Speicherung über mehrere
@@ -35,9 +39,10 @@ Supabase-Datenbank (Schritte unten).
 2. Kopiere den kompletten Inhalt von [`schema.sql`](schema.sql) hinein und klicke **Run**
    (bei einem bereits bestehenden Projekt mit älterem Schema stattdessen
    [`migration_v2.sql`](migration_v2.sql) verwenden - das ersetzt die Tabellen komplett;
-   ist dein Projekt schon auf v2, reicht danach [`migration_v3.sql`](migration_v3.sql)
-   und [`migration_v5.sql`](migration_v5.sql) [`migration_v4.sql` überspringen];
-   ist es schon auf v3 oder v4, reicht nur `migration_v5.sql`).
+   ist dein Projekt schon auf v2, reicht danach [`migration_v3.sql`](migration_v3.sql),
+   [`migration_v5.sql`](migration_v5.sql) und [`migration_v6.sql`](migration_v6.sql)
+   [`migration_v4.sql` überspringen]; ist es schon auf v3/v4/v5, reicht nur
+   `migration_v6.sql`).
 3. Das legt drei Tabellen an: `facts` (Gedächtnis pro Aufgabe, jetzt getrennt
    nach Fach), `answer_log` (jede einzelne Antwort/jedes Überspringen, für die
    Auswertung) und `progress` (Paket-Fortschritt/Punkte).

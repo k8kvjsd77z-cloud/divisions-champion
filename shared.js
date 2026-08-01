@@ -590,6 +590,10 @@ function enqueueCloudWrite(label, run){
 }
 
 // Wird vom Spiel nach jeder Antwort/jedem Überspringen aufgerufen.
+// "detail" ist der konkrete Aufgaben-Text (z.B. "48 × 6 =") - bei den
+// schriftlichen Fächern lässt sich die Einzelaufgabe sonst nicht mehr
+// rekonstruieren (jede Zahl wird ja frisch zufällig erzeugt, anders als bei
+// Division/Multiplikation, wo reihe+position dafür reichen).
 function cloudLogAnswer(entry){
   const sb = getSupabaseClient();
   if(!sb) return;
@@ -600,7 +604,8 @@ function cloudLogAnswer(entry){
     given_answer: entry.given ?? null,
     correct: !!entry.correct,
     skipped: !!entry.skipped,
-    mode: entry.mode
+    mode: entry.mode,
+    detail: entry.detail ?? null
   }));
 }
 

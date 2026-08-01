@@ -594,7 +594,7 @@ function submitSchriftlichAnswer(){
   // immer fest 1, es gibt keine zweite Dimension wie bei Division/Mult.).
   const updatedFact = updateFact(t.subject, t.einstellig, 1, allCorrect);
   cloudUpsertFact(t.subject, t.einstellig, 1, updatedFact);
-  cloudLogAnswer({ subject:t.subject, reihe:t.einstellig, position:1, given:vFinal, correct:allCorrect, skipped:false, mode:'schriftlich' });
+  cloudLogAnswer({ subject:t.subject, reihe:t.einstellig, position:1, given:vFinal, correct:allCorrect, skipped:false, mode:'schriftlich', detail:t.promptText });
 
   if(allCorrect){
     state.score += 10;
@@ -622,7 +622,7 @@ function handleSchriftlichSkip(){
   const t = currentSchriftlichTask();
   const updatedFact = skipFact(t.subject, t.einstellig, 1);
   cloudUpsertFact(t.subject, t.einstellig, 1, updatedFact);
-  cloudLogAnswer({ subject:t.subject, reihe:t.einstellig, position:1, given:null, correct:false, skipped:true, mode:'schriftlich' });
+  cloudLogAnswer({ subject:t.subject, reihe:t.einstellig, position:1, given:null, correct:false, skipped:true, mode:'schriftlich', detail:t.promptText });
   document.getElementById('schriftlich-feedback').textContent = 'Übersprungen – kommt später nochmal dran.';
   advanceSchriftlichQueue(true);
 }
@@ -923,7 +923,7 @@ function handleSkip(){
   quiz.lockInput = true;
   const updatedFact = skipFact(quiz.subject, q.reihe, q.position);
   cloudUpsertFact(quiz.subject, q.reihe, q.position, updatedFact);
-  cloudLogAnswer({ subject:quiz.subject, reihe:q.reihe, position:q.position, given:null, correct:false, skipped:true, mode:quiz.mode });
+  cloudLogAnswer({ subject:quiz.subject, reihe:q.reihe, position:q.position, given:null, correct:false, skipped:true, mode:quiz.mode, detail:q.promptText });
 
   const box = document.getElementById('answer-box');
   box.className = 'answer-box skipped';
@@ -945,7 +945,7 @@ function submitAnswer(){
   quiz.lockInput = true;
   const updatedFact = updateFact(quiz.subject, q.reihe, q.position, correct);
   cloudUpsertFact(quiz.subject, q.reihe, q.position, updatedFact);
-  cloudLogAnswer({ subject:quiz.subject, reihe:q.reihe, position:q.position, given, correct, skipped:false, mode:quiz.mode });
+  cloudLogAnswer({ subject:quiz.subject, reihe:q.reihe, position:q.position, given, correct, skipped:false, mode:quiz.mode, detail:q.promptText });
 
   if(correct){
     box.className = 'answer-box correct';

@@ -565,6 +565,31 @@ function computeOftenSkipped(subject, limit){
     .slice(0, limit);
 }
 
+// Bei den schriftlichen Fächern verrät die Reihen-Auswertung oben nur, WELCHE
+// Reihe auffällig ist, nicht welche konkrete Aufgabe (jede Zahl wird ja
+// frisch zufällig erzeugt). Diese beiden Funktionen ziehen deshalb direkt aus
+// dem Antwort-Log die tatsächlichen Aufgaben, die zuletzt falsch beantwortet
+// bzw. übersprungen wurden (mit ihrem konkreten Aufgaben-Text in "detail").
+function computeRecentWrongTasks(subject, limit){
+  return lastLog
+    .filter(r=>r.subject===subject && !r.skipped && !r.correct)
+    .sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''))
+    .slice(0, limit);
+}
+
+function computeRecentSkippedTasks(subject, limit){
+  return lastLog
+    .filter(r=>r.subject===subject && r.skipped)
+    .sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''))
+    .slice(0, limit);
+}
+
+// "detail" fehlt nur bei Einträgen von vor diesem Update (Migration v6) -
+// für die lässt sich der genaue Aufgabentext nicht mehr rekonstruieren.
+function taskLogRowLabel(row){
+  return row.detail || `(Aufgabentext nicht gespeichert - vor dem Update erfasst)`;
+}
+
 function computeAccuracyTrend(subject){
   const filtered = lastLog.filter(r=>r.subject===subject && !r.skipped);
   const byDay = {};
@@ -719,6 +744,8 @@ function renderSubjectSection(subject){
   const perReihe = computePerReiheErrorRates(subject);
   const weakest = computeWeakestFacts(subject, 8);
   const oftenSkipped = computeOftenSkipped(subject, 8);
+  const recentWrong = isWritten ? computeRecentWrongTasks(subject, 10) : [];
+  const recentSkipped = isWritten ? computeRecentSkippedTasks(subject, 10) : [];
   const trend = computeAccuracyTrend(subject);
   const insights = computeInsights(subject);
   const sym = subjectSymbol(subject);
@@ -776,6 +803,24 @@ function renderSubjectSection(subject){
         <span class="pct skip">${t.fact.skip}× übersprungen</span></li>`).join('')}</ul>`
         : `<p class="sub">Bisher keine ${itemWordSingular} auffällig oft übersprungen.</p>`}
     </div>
+
+    ${isWritten ? `
+    <div class="card">
+      <h2>Diese konkreten Aufgaben waren zuletzt falsch</h2>
+      ${recentWrong.length ? `<ul class="weak-list">${recentWrong.map(r=>`
+        <li><span>${taskLogRowLabel(r)}</span>
+        <span class="pct">${r.created_at ? formatDay(r.created_at.slice(0,10)) : ''}${r.given_answer!=null ? ' · Antwort: '+r.given_answer : ''}</span></li>`).join('')}</ul>`
+        : '<p class="sub">Bisher keine konkrete Aufgabe als falsch aufgezeichnet.</p>'}
+    </div>
+
+    <div class="card">
+      <h2>Diese konkreten Aufgaben wurden zuletzt übersprungen</h2>
+      ${recentSkipped.length ? `<ul class="weak-list">${recentSkipped.map(r=>`
+        <li><span>${taskLogRowLabel(r)}</span>
+        <span class="pct skip">${r.created_at ? formatDay(r.created_at.slice(0,10)) : ''}</span></li>`).join('')}</ul>`
+        : '<p class="sub">Bisher keine konkrete Aufgabe als übersprungen aufgezeichnet.</p>'}
+    </div>
+    ` : ''}
 
     <div class="insight-box">
       <h2>🔍 Was auffällt</h2>
