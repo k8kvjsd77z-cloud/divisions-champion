@@ -606,6 +606,58 @@ function skippedTasksTableHTML(rows){
   </tbody></table>`;
 }
 
+// Gruppiert das Antwort-Log nach Paket (package_number, seit Migration v7),
+// damit sich nicht nur "insgesamt" sondern genau je Paket sehen lässt, wo
+// die Fehler/Übersprüngen konkret vorkamen - das ist der eigentliche Zweck:
+// gezielt erkennen, in welchem Paket es hakt, statt nur eine Gesamtzahl.
+// Ältere Einträge ohne package_number (vor der Migration) tauchen hier
+// bewusst nicht auf, da sie sich keinem Paket mehr zuordnen lassen.
+function computeTasksByPackage(subject){
+  const byPackage = {};
+  lastLog.forEach(r=>{
+    if(r.subject !== subject || r.package_number == null) return;
+    if(!byPackage[r.package_number]) byPackage[r.package_number] = { correct:0, wrong:0, skipped:0, wrongRows:[], skippedRows:[] };
+    const bucket = byPackage[r.package_number];
+    if(r.skipped){ bucket.skipped++; bucket.skippedRows.push(r); }
+    else if(r.correct){ bucket.correct++; }
+    else { bucket.wrong++; bucket.wrongRows.push(r); }
+  });
+  return Object.keys(byPackage).map(Number).sort((a,b)=>a-b).map(n=>
+    Object.assign({ packageNumber:n }, byPackage[n])
+  );
+}
+
+function packageLabelFor(subject, n){
+  const curriculumCount = curriculumCountFor(subject);
+  return n <= curriculumCount ? `Paket ${n}` : `Wiederholung ${n - curriculumCount}`;
+}
+
+function packageProblemsTableHTML(p){
+  const rows = p.wrongRows.map(r=>Object.assign({ statusLabel:'falsch' }, r))
+    .concat(p.skippedRows.map(r=>Object.assign({ statusLabel:'übersprungen' }, r)))
+    .sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||''));
+  return `<table class="data-table"><thead><tr><th>Aufgabe</th><th>Status</th><th>Antwort</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${taskLogRowLabel(r)}</td><td>${r.statusLabel}</td><td>${r.given_answer!=null?r.given_answer:'–'}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+function tasksByPackageHTML(subject){
+  const rows = computeTasksByPackage(subject);
+  if(!rows.length) return '<p class="sub">Noch keine Pakete mit erfassten Einzelaufgaben (nur ab jetzt gespielte Pakete werden hier aufgeschlüsselt).</p>';
+  return rows.map(p=>{
+    const total = p.correct + p.wrong + p.skipped;
+    const problemCount = p.wrongRows.length + p.skippedRows.length;
+    return `
+    <div style="padding:9px 0; border-bottom:1px solid var(--gridline);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+        <span>${packageLabelFor(subject, p.packageNumber)}</span>
+        <span class="pct" style="color:var(--text-primary);">${total} Aufgaben · ${p.correct} richtig${p.wrong?` · ${p.wrong} falsch`:''}${p.skipped?` · ${p.skipped} übersprungen`:''}</span>
+      </div>
+      ${problemCount ? tableToggle(`${problemCount} auffällige Aufgabe(n) in diesem Paket anzeigen`, packageProblemsTableHTML(p)) : ''}
+    </div>`;
+  }).join('');
+}
+
 function computeAccuracyTrend(subject){
   const filtered = lastLog.filter(r=>r.subject===subject && !r.skipped);
   const byDay = {};
@@ -792,6 +844,12 @@ function renderSubjectSection(subject){
     <div class="card">
       <h2>Paket-Übersicht</h2>
       <ul class="weak-list">${packageOverviewRows(subject)}</ul>
+    </div>
+
+    <div class="card">
+      <h2>Aufgaben je Paket</h2>
+      <p class="sub" style="margin-bottom:12px;">Zeigt für jedes Paket, wie viele Aufgaben gemacht wurden und welche davon konkret falsch oder übersprungen waren – so wird sichtbar, in welchem Paket genau die Lücken liegen.</p>
+      ${tasksByPackageHTML(subject)}
     </div>
 
     <div class="card">

@@ -1,14 +1,14 @@
 -- ============================================================
--- Milli Power Akademie – Supabase-Schema (v6: answer_log speichert den
--- konkreten Aufgaben-Text, subject-Feld akzeptiert automatisch jedes
--- künftig neu hinzugefügte Fach ohne weitere Migration)
+-- Milli Power Akademie – Supabase-Schema (v7: answer_log speichert
+-- konkreten Aufgaben-Text UND Paketnummer, subject-Feld akzeptiert
+-- automatisch jedes künftig neu hinzugefügte Fach ohne weitere Migration)
 -- Einmal komplett im SQL-Editor deines Supabase-Projekts ausführen
 -- (Dashboard → SQL Editor → New query → einfügen → Run).
 -- Für ein bereits bestehendes Projekt mit dem alten (v1) Schema:
 -- benutze stattdessen migration_v2.sql, dann migration_v3.sql, dann
--- migration_v5.sql, dann migration_v6.sql (migration_v4.sql kann
--- übersprungen werden - v5 ersetzt sie). Für ein Projekt, das schon auf
--- v2/v3/v4/v5 ist: nur migration_v6.sql ausführen.
+-- migration_v5.sql, dann migration_v6.sql, dann migration_v7.sql
+-- (migration_v4.sql kann übersprungen werden - v5 ersetzt sie). Für ein
+-- Projekt, das schon auf v2-v6 ist: nur migration_v7.sql ausführen.
 -- ============================================================
 
 create table if not exists facts (
@@ -37,7 +37,11 @@ create table if not exists answer_log (
   -- Konkreter Aufgaben-Text (z.B. "48 × 6 =") - v.a. für die schriftlichen
   -- Fächer wichtig, da sich die Einzelaufgabe dort sonst nicht mehr
   -- rekonstruieren lässt (jede Zahl wird frisch zufällig erzeugt).
-  detail text
+  detail text,
+  -- Zu welchem Paket die Antwort gehörte (NULL bei der Milli Power
+  -- Akademie, die kein Paket-Konzept hat) - erlaubt die Gruppierung "welche
+  -- Aufgaben je Paket" im Eltern-Dashboard.
+  package_number integer
 );
 
 create table if not exists progress (

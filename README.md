@@ -21,6 +21,9 @@ auftreten. Trainer ist **Papalino**, die Schülerin heißt im Spiel **Milli**.
   Antwort, damit das Dashboard bei den schriftlichen Fächern auch die
   einzelnen falschen/übersprungenen Aufgaben zeigen kann, nicht nur die
   Reihen-Zusammenfassung (nötig für Projekte, die schon auf v2-v5 sind)
+- `migration_v7.sql` – speichert zusätzlich die Paketnummer pro Antwort,
+  damit das Dashboard die Aufgaben je Paket gruppieren kann (nötig für
+  Projekte, die schon auf v2-v6 sind)
 
 Ohne Einrichtung läuft das Spiel sofort lokal im Browser (Fortschritt wird
 in `localStorage` gespeichert). Für dauerhafte Speicherung über mehrere

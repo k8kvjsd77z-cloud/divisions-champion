@@ -108,7 +108,20 @@ const WRITTEN_PACKAGE_COUNT_OVERRIDES = { writtenMixed: 3 };
 function writtenPackageCountFor(subject){
   return WRITTEN_PACKAGE_COUNT_OVERRIDES[subject] || WRITTEN_PACKAGE_COUNT;
 }
+// WRITTEN_PACKAGE_SIZE ist die Größe eines einzelnen Blocks. Ein Paket
+// besteht aus 1..n Blöcken hintereinander (siehe WRITTEN_BLOCKS_PER_PACKAGE_
+// OVERRIDES) - bei den normalen Sessions genau 1 Block (= 5 Aufgaben je
+// Paket wie bisher), bei "Schriftlich Gemischt" 5 Blöcke (= 25 Aufgaben je
+// Paket). Die "maximal 2 schwere Divisions-Aufgaben"-Regel gilt weiterhin
+// pro Block, nicht pro ganzem Paket.
 const WRITTEN_PACKAGE_SIZE = 5;
+const WRITTEN_BLOCKS_PER_PACKAGE_OVERRIDES = { writtenMixed: 5 };
+function writtenBlocksPerPackage(subject){
+  return WRITTEN_BLOCKS_PER_PACKAGE_OVERRIDES[subject] || 1;
+}
+function writtenPackageSizeFor(subject){
+  return writtenBlocksPerPackage(subject) * WRITTEN_PACKAGE_SIZE;
+}
 // Welcher einstellige Faktor/Divisor je Paket im Topf ist - wächst wie bei
 // den normalen Paketen schrittweise.
 const WRITTEN_FACTOR_POOLS = [
@@ -541,7 +554,9 @@ function buildWrittenTask(subject, packageNumber, forceHard, kind){
   };
 }
 
-function buildWrittenPackage(subject, packageNumber){
+// Ein einzelner Block (WRITTEN_PACKAGE_SIZE Aufgaben) - die "maximal 2
+// schwere Divisions-Aufgaben"-Regel wird hier pro Block ausgewertet.
+function buildWrittenTaskBlock(subject, packageNumber){
   const kindPerTask = [];
   for(let i=0; i<WRITTEN_PACKAGE_SIZE; i++) kindPerTask.push(pickWrittenTaskKind(subject));
   const divisionIndices = kindPerTask.map((k,i)=>k==='division' ? i : -1).filter(i=>i>=0);
@@ -551,6 +566,30 @@ function buildWrittenPackage(subject, packageNumber){
     tasks.push(buildWrittenTask(subject, packageNumber, hardIndices.has(i), kindPerTask[i]));
   }
   return tasks;
+}
+
+// Ein Paket besteht aus 1..n Blöcken hintereinander (siehe
+// writtenBlocksPerPackage) - bei den normalen Sessions genau 1 Block, bei
+// "Schriftlich Gemischt" 5 Blöcke (= 25 Aufgaben je Paket).
+function buildWrittenPackage(subject, packageNumber){
+  const blocks = writtenBlocksPerPackage(subject);
+  let tasks = [];
+  for(let b=0; b<blocks; b++){
+    tasks = tasks.concat(buildWrittenTaskBlock(subject, packageNumber));
+  }
+  return tasks;
+}
+
+// Sterne-Schwellen relativ zur Paketgröße statt fest verdrahtet - bei 5
+// Aufgaben (Standard) entspricht das exakt den bisherigen Werten (0 Fehler
+// = 3 Sterne, 1-2 = 2 Sterne, 3+ = 1 Stern), bei größeren Paketen (z.B. 25
+// bei "Schriftlich Gemischt") skaliert es proportional mit.
+function starsForMistakes(mistakes, totalTasks){
+  const highThreshold = Math.max(3, Math.ceil(totalTasks * 0.6));
+  const lowThreshold = Math.max(1, Math.ceil(totalTasks * 0.2));
+  if(mistakes >= highThreshold) return 1;
+  if(mistakes >= lowThreshold) return 2;
+  return 3;
 }
 
 // Milli Power Akademie: gewichteter Pool über alle bisher eingeführten Reihen,
@@ -662,7 +701,9 @@ function enqueueCloudWrite(label, run){
 // "detail" ist der konkrete Aufgaben-Text (z.B. "48 × 6 =") - bei den
 // schriftlichen Fächern lässt sich die Einzelaufgabe sonst nicht mehr
 // rekonstruieren (jede Zahl wird ja frisch zufällig erzeugt, anders als bei
-// Division/Multiplikation, wo reihe+position dafür reichen).
+// Division/Multiplikation, wo reihe+position dafür reichen). "packageNumber"
+// erlaubt es dem Eltern-Dashboard, die Aufgaben je Paket zu gruppieren
+// (fehlt bei der Milli Power Akademie, die kein Paket-Konzept hat).
 function cloudLogAnswer(entry){
   const sb = getSupabaseClient();
   if(!sb) return;
@@ -674,7 +715,8 @@ function cloudLogAnswer(entry){
     correct: !!entry.correct,
     skipped: !!entry.skipped,
     mode: entry.mode,
-    detail: entry.detail ?? null
+    detail: entry.detail ?? null,
+    package_number: entry.packageNumber ?? null
   }));
 }
 
