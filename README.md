@@ -12,8 +12,11 @@ auftreten. Trainer ist **Papalino**, die Schülerin heißt im Spiel **Milli**.
 - `migration_v2.sql` – Schema-Update für ein Projekt mit dem alten (v1) Schema
 - `migration_v3.sql` – Schema-Update, damit auch die schriftlichen Fächer
   Aufgaben-Daten speichern dürfen (nötig für Projekte, die schon auf v2 sind)
-- `migration_v4.sql` – Schema-Update für die 4 zusätzlichen schriftlichen
-  Sessions (nötig für Projekte, die schon auf v3 sind)
+- `migration_v4.sql` – historisch, nicht mehr nötig (durch `migration_v5.sql`
+  ersetzt - kann übersprungen werden)
+- `migration_v5.sql` – macht das Fach-Feld dauerhaft zukunftssicher: jedes
+  künftig neu hinzugefügte Fach wird automatisch akzeptiert, ohne dass noch
+  eine Migration nötig wird (nötig für Projekte, die schon auf v2/v3/v4 sind)
 
 Ohne Einrichtung läuft das Spiel sofort lokal im Browser (Fortschritt wird
 in `localStorage` gespeichert). Für dauerhafte Speicherung über mehrere
@@ -33,7 +36,8 @@ Supabase-Datenbank (Schritte unten).
    (bei einem bereits bestehenden Projekt mit älterem Schema stattdessen
    [`migration_v2.sql`](migration_v2.sql) verwenden - das ersetzt die Tabellen komplett;
    ist dein Projekt schon auf v2, reicht danach [`migration_v3.sql`](migration_v3.sql)
-   und [`migration_v4.sql`](migration_v4.sql); ist es schon auf v3, reicht nur `migration_v4.sql`).
+   und [`migration_v5.sql`](migration_v5.sql) [`migration_v4.sql` überspringen];
+   ist es schon auf v3 oder v4, reicht nur `migration_v5.sql`).
 3. Das legt drei Tabellen an: `facts` (Gedächtnis pro Aufgabe, jetzt getrennt
    nach Fach), `answer_log` (jede einzelne Antwort/jedes Überspringen, für die
    Auswertung) und `progress` (Paket-Fortschritt/Punkte).

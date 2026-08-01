@@ -1,16 +1,17 @@
 -- ============================================================
--- Milli Power Akademie – Supabase-Schema (v4: Division, Multiplikation,
--- je 3 Sessions schriftliche Division/Multiplikation)
+-- Milli Power Akademie – Supabase-Schema (v5: subject-Feld akzeptiert
+-- automatisch jedes künftig neu hinzugefügte Fach, ohne weitere Migration)
 -- Einmal komplett im SQL-Editor deines Supabase-Projekts ausführen
 -- (Dashboard → SQL Editor → New query → einfügen → Run).
 -- Für ein bereits bestehendes Projekt mit dem alten (v1) Schema:
 -- benutze stattdessen migration_v2.sql, dann migration_v3.sql, dann
--- migration_v4.sql. Für ein Projekt, das schon auf v3 ist: nur
--- migration_v4.sql ausführen.
+-- migration_v5.sql (migration_v4.sql kann übersprungen werden - v5 ersetzt
+-- sie). Für ein Projekt, das schon auf v2/v3/v4 ist: nur migration_v5.sql
+-- ausführen.
 -- ============================================================
 
 create table if not exists facts (
-  subject text not null check (subject in ('division','multiplication','writtenMultiplication','writtenMultiplication2','writtenMultiplication3','writtenDivision','writtenDivision2','writtenDivision3')),
+  subject text not null check (subject ~ '^[A-Za-z][A-Za-z0-9]*$' and char_length(subject) <= 40),
   reihe smallint not null check (reihe between 1 and 12),
   position smallint not null check (position between 1 and 12),
   box smallint not null default 0,
@@ -25,7 +26,7 @@ create table if not exists facts (
 create table if not exists answer_log (
   id bigint generated always as identity primary key,
   created_at timestamptz not null default now(),
-  subject text not null check (subject in ('division','multiplication','writtenMultiplication','writtenMultiplication2','writtenMultiplication3','writtenDivision','writtenDivision2','writtenDivision3')),
+  subject text not null check (subject ~ '^[A-Za-z][A-Za-z0-9]*$' and char_length(subject) <= 40),
   reihe smallint not null,
   position smallint not null,
   given_answer integer,

@@ -1,4 +1,10 @@
 -- ============================================================
+-- ⚠️ ÜBERHOLT - nicht mehr ausführen. Durch migration_v5.sql ersetzt, die
+-- die feste Fach-Liste komplett durch eine Formatprüfung ersetzt (jedes
+-- künftig neue Fach wird dadurch automatisch akzeptiert, ganz ohne weitere
+-- Migration). Diese Datei bleibt nur als historisches Dokument stehen.
+-- ============================================================
+--
 -- Migration v4: 4 neue schriftliche Übungs-Sessions (je 2 zusätzliche für
 -- Division und Multiplikation, zusätzlich zu den bestehenden) - erweitert
 -- die CHECK-Constraints in "facts" und "answer_log" um die neuen
