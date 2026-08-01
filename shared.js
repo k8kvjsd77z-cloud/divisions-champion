@@ -39,21 +39,28 @@ const SKIP_FLAG_THRESHOLD = 1;
 // den bisher auffälligen Reihen dieser Session).
 const WRITTEN_MULTIPLICATION_SUBJECTS = ['writtenMultiplication', 'writtenMultiplication2', 'writtenMultiplication3'];
 const WRITTEN_DIVISION_SUBJECTS = ['writtenDivision', 'writtenDivision2', 'writtenDivision3'];
-const WRITTEN_SUBJECTS = WRITTEN_MULTIPLICATION_SUBJECTS.concat(WRITTEN_DIVISION_SUBJECTS);
+// Gemischte Session: pro Aufgabe zufällig Multiplikation ODER Division -
+// mit weniger Einstiegs-Paketen als die reinen Sessions (siehe
+// WRITTEN_PACKAGE_COUNT_OVERRIDES unten), da sie beide Rechenarten schon
+// einzeln geübt haben soll, bevor sie hier gemischt werden.
+const WRITTEN_MIXED_SUBJECTS = ['writtenMixed'];
+const WRITTEN_SUBJECTS = WRITTEN_MULTIPLICATION_SUBJECTS.concat(WRITTEN_DIVISION_SUBJECTS).concat(WRITTEN_MIXED_SUBJECTS);
 const WRITTEN_SUBJECT_LABELS = {
   writtenMultiplication: 'Schriftliche Multiplikation',
   writtenMultiplication2: 'Schriftliche Multiplikation 2',
   writtenMultiplication3: 'Schriftliche Multiplikation 3',
   writtenDivision: 'Schriftliche Division',
   writtenDivision2: 'Schriftliche Division 2',
-  writtenDivision3: 'Schriftliche Division 3'
+  writtenDivision3: 'Schriftliche Division 3',
+  writtenMixed: 'Schriftlich Gemischt'
 };
 // Fester Beispiel-Rechenweg, der jedes Mal gezeigt wird, wenn Milli neu in
 // eine der schriftlichen Sessions einsteigt (nicht an die konkreten Zahlen
 // des jeweiligen Pakets gekoppelt, nur zur Erinnerung an die Methode). Bei
-// der Division wird die Zerlegung des Dividenden (60, 12) inzwischen selbst
+// der Division wird die Zerlegung des Dividenden (30, 12) inzwischen selbst
 // eingetragen - das Beispiel zeigt trotzdem den kompletten, fertigen
-// Rechenweg zum Nachlesen.
+// Rechenweg zum Nachlesen. Der Dividend ist bewusst zweistellig (siehe
+// WRITTEN_DIVISION_HARD_* unten - die breite Masse der Aufgaben soll das sein).
 const WRITTEN_MULTIPLICATION_INTRO = [
   { text: '2 × 44 = ?' },
   { text: '2 × 40 = 80' },
@@ -61,10 +68,10 @@ const WRITTEN_MULTIPLICATION_INTRO = [
   { text: '80 + 8 = 88', final: true }
 ];
 const WRITTEN_DIVISION_INTRO = [
-  { text: '128 ÷ 4 = ?' },
-  { text: '120 ÷ 4 = 30' },
-  { text: '8 ÷ 4 = 2' },
-  { text: '30 + 2 = 32', final: true }
+  { text: '42 ÷ 3 = ?' },
+  { text: '30 ÷ 3 = 10' },
+  { text: '12 ÷ 3 = 4' },
+  { text: '10 + 4 = 14', final: true }
 ];
 const WRITTEN_INTRO_EXAMPLES = {
   writtenMultiplication: WRITTEN_MULTIPLICATION_INTRO,
@@ -72,7 +79,8 @@ const WRITTEN_INTRO_EXAMPLES = {
   writtenMultiplication3: WRITTEN_MULTIPLICATION_INTRO,
   writtenDivision: WRITTEN_DIVISION_INTRO,
   writtenDivision2: WRITTEN_DIVISION_INTRO,
-  writtenDivision3: WRITTEN_DIVISION_INTRO
+  writtenDivision3: WRITTEN_DIVISION_INTRO,
+  writtenMixed: WRITTEN_MULTIPLICATION_INTRO.concat(WRITTEN_DIVISION_INTRO)
 };
 // Für Stellen (z.B. Eltern-Dashboard), die automatisch ALLE Fächer anzeigen
 // sollen - auch neu hinzugefügte - statt sie einzeln aufzuzählen.
@@ -86,13 +94,20 @@ const SUBJECT_ICONS = {
   writtenMultiplication3: '✍️',
   writtenDivision: '✍️',
   writtenDivision2: '✍️',
-  writtenDivision3: '✍️'
+  writtenDivision3: '✍️',
+  writtenMixed: '🔀'
 };
 
 // Genau 5 feste Einstiegs-Pakete je Session (÷/× 2 bis 9 werden bis Paket 5
 // komplett eingeführt). Paket 6 und danach sind automatisch Wiederholungs-
-// Pakete, genau wie bei Division/Multiplikation ab Paket 11.
+// Pakete, genau wie bei Division/Multiplikation ab Paket 11. Die gemischte
+// Session hat nur 3 Einstiegs-Pakete (siehe WRITTEN_PACKAGE_COUNT_OVERRIDES),
+// da sie beide Rechenarten schon einzeln geübt haben soll.
 const WRITTEN_PACKAGE_COUNT = 5;
+const WRITTEN_PACKAGE_COUNT_OVERRIDES = { writtenMixed: 3 };
+function writtenPackageCountFor(subject){
+  return WRITTEN_PACKAGE_COUNT_OVERRIDES[subject] || WRITTEN_PACKAGE_COUNT;
+}
 const WRITTEN_PACKAGE_SIZE = 5;
 // Welcher einstellige Faktor/Divisor je Paket im Topf ist - wächst wie bei
 // den normalen Paketen schrittweise.
@@ -303,7 +318,10 @@ function analyzeWeakAreas(subject){
   return perTable.slice(0,2).map(e=>e[0]);
 }
 
-function subjectSymbol(subject){ return subject.toLowerCase().includes('division') ? '÷' : '×'; }
+function subjectSymbol(subject){
+  if(WRITTEN_MIXED_SUBJECTS.includes(subject)) return '×/÷';
+  return subject.toLowerCase().includes('division') ? '÷' : '×';
+}
 
 // Anzeige-Label für eine "Reihe" bei den schriftlichen Fächern im Dashboard -
 // dort gibt es keine feste Einzelaufgabe, nur den einstelligen Faktor/Divisor.
@@ -394,12 +412,13 @@ function buildGuidedPackage(subject, packageNumber){
    Teile) ein eigenes Eingabefeld - Milli soll sie selbst herleiten, nicht
    nur die Teilergebnisse eintragen.
    ============================================================ */
-function isWrittenCurriculumPackage(packageNumber){
-  return packageNumber <= WRITTEN_PACKAGE_COUNT;
+function isWrittenCurriculumPackage(subject, packageNumber){
+  return packageNumber <= writtenPackageCountFor(subject);
 }
 
-function writtenPackageTileLabel(n){
-  return n > WRITTEN_PACKAGE_COUNT ? `Wiederholung ${n - WRITTEN_PACKAGE_COUNT}` : `Paket ${n}`;
+function writtenPackageTileLabel(subject, n){
+  const count = writtenPackageCountFor(subject);
+  return n > count ? `Wiederholung ${n - count}` : `Paket ${n}`;
 }
 
 // Analog zu buildSonderblöcke, aber auf Reihen-Ebene (2-9) statt auf
@@ -424,12 +443,17 @@ function buildWrittenSonderblöcke(subject){
 }
 
 function writtenPackageHasContent(subject, packageNumber){
-  if(isWrittenCurriculumPackage(packageNumber)) return true;
+  if(isWrittenCurriculumPackage(subject, packageNumber)) return true;
   return buildWrittenSonderblöcke(subject).length > 0;
 }
 
 function writtenFactorPool(subject, packageNumber){
-  if(isWrittenCurriculumPackage(packageNumber)){
+  if(isWrittenCurriculumPackage(subject, packageNumber)){
+    if(WRITTEN_MIXED_SUBJECTS.includes(subject)){
+      // Gemischte Session startet direkt auf dem vollen Schwierigkeitsgrad -
+      // sie soll beide Rechenarten kombinieren, nicht nochmal von vorn lernen.
+      return WRITTEN_FACTOR_POOLS[WRITTEN_FACTOR_POOLS.length - 1];
+    }
     return WRITTEN_FACTOR_POOLS[Math.min(packageNumber - 1, WRITTEN_FACTOR_POOLS.length - 1)];
   }
   // Wiederholungs-Paket: immer der *aktuell* auffälligste Reihen-Block dieser
@@ -439,14 +463,53 @@ function writtenFactorPool(subject, packageNumber){
   return block.length ? block : WRITTEN_FACTOR_POOLS[WRITTEN_FACTOR_POOLS.length - 1];
 }
 
-function buildWrittenTask(subject, packageNumber){
+// Welche Rechenart eine Aufgabe dieser Session bekommt: bei den reinen
+// Sessions immer dieselbe, bei der gemischten Session pro Aufgabe zufällig.
+function pickWrittenTaskKind(subject){
+  if(WRITTEN_MULTIPLICATION_SUBJECTS.includes(subject)) return 'multiplication';
+  if(WRITTEN_DIVISION_SUBJECTS.includes(subject)) return 'division';
+  return Math.random() < 0.5 ? 'multiplication' : 'division';
+}
+
+// Höchstens 2 von 5 Divisions-Aufgaben je Paket dürfen "schwer" sein (der
+// Dividend darf dann auch dreistellig werden, z.B. 279÷3) - die breite Masse
+// bleibt bewusst einfacher mit zweistelligem Dividend (z.B. 42÷3). candidate
+// Indices sind die Positionen im Paket, die überhaupt Divisions-Aufgaben sind.
+function pickHardDivisionIndices(candidateIndices){
+  if(candidateIndices.length === 0) return [];
+  const roll = Math.random();
+  const hardCount = Math.min(candidateIndices.length, roll < 0.5 ? 0 : (roll < 0.85 ? 1 : 2));
+  return shuffle(candidateIndices.slice()).slice(0, hardCount);
+}
+
+// Zerlegt den Quotienten in Zehner-/Einerteil. Im Normalfall (hard=false) so
+// begrenzt, dass der Dividend (einstellig * Quotient) zweistellig bleibt -
+// bei einstellig=9 z.B. darf der Quotient dafür nur 10 oder 11 sein. Im
+// seltenen "harten" Fall (max. 2 je Paket) wie bisher der volle Bereich.
+function writtenDivisionDecomposition(einstellig, hard){
+  if(hard){
+    return {
+      zehnerTeil: (1 + Math.floor(Math.random()*9)) * 10, // 10..90
+      einerTeil: Math.floor(Math.random()*10) // 0..9
+    };
+  }
+  const maxQuotient = Math.floor(99 / einstellig); // 11 (÷9) bis 49 (÷2)
+  const maxZehnerStep = Math.floor(maxQuotient / 10); // 1..4
+  const zehnerTeil = (1 + Math.floor(Math.random() * maxZehnerStep)) * 10;
+  const remainingRoom = Math.min(9, maxQuotient - zehnerTeil);
+  const einerTeil = Math.floor(Math.random() * (remainingRoom + 1));
+  return { zehnerTeil, einerTeil };
+}
+
+function buildWrittenTask(subject, packageNumber, forceHard, kind){
+  const resolvedKind = kind || pickWrittenTaskKind(subject);
   const pool = writtenFactorPool(subject, packageNumber);
   const einstellig = pool[Math.floor(Math.random() * pool.length)];
-  const zehnerTeil = (1 + Math.floor(Math.random() * 9)) * 10; // 10,20,...,90
-  const einerTeil = Math.floor(Math.random() * 10); // 0-9
-  const zweistellig = zehnerTeil + einerTeil;
 
-  if(WRITTEN_MULTIPLICATION_SUBJECTS.includes(subject)){
+  if(resolvedKind === 'multiplication'){
+    const zehnerTeil = (1 + Math.floor(Math.random() * 9)) * 10; // 10,20,...,90
+    const einerTeil = Math.floor(Math.random() * 10); // 0-9
+    const zweistellig = zehnerTeil + einerTeil;
     const teil1 = einstellig * zehnerTeil;
     const teil2 = einstellig * einerTeil;
     return {
@@ -459,10 +522,12 @@ function buildWrittenTask(subject, packageNumber){
     };
   }
 
-  // writtenDivision: Divisor = einstellig, Ergebnis (Quotient) = zweistellig,
+  // Division: Divisor = einstellig, Ergebnis (Quotient) = zweistellig,
   // Ausgangszahl (Dividend) = einstellig * zweistellig. Die Zerlegung des
-  // Dividenden in die beiden Teile (z.B. 128 -> 120 + 8) ist selbst ein
+  // Dividenden in die beiden Teile (z.B. 42 -> 30 + 12) ist selbst ein
   // Eingabefeld, nicht mehr vorgegeben.
+  const { zehnerTeil, einerTeil } = writtenDivisionDecomposition(einstellig, !!forceHard);
+  const zweistellig = zehnerTeil + einerTeil;
   const dividend = einstellig * zweistellig;
   const teil1 = einstellig * zehnerTeil;
   const teil2 = einstellig * einerTeil;
@@ -477,9 +542,13 @@ function buildWrittenTask(subject, packageNumber){
 }
 
 function buildWrittenPackage(subject, packageNumber){
+  const kindPerTask = [];
+  for(let i=0; i<WRITTEN_PACKAGE_SIZE; i++) kindPerTask.push(pickWrittenTaskKind(subject));
+  const divisionIndices = kindPerTask.map((k,i)=>k==='division' ? i : -1).filter(i=>i>=0);
+  const hardIndices = new Set(pickHardDivisionIndices(divisionIndices));
   const tasks = [];
   for(let i=0; i<WRITTEN_PACKAGE_SIZE; i++){
-    tasks.push(buildWrittenTask(subject, packageNumber));
+    tasks.push(buildWrittenTask(subject, packageNumber, hardIndices.has(i), kindPerTask[i]));
   }
   return tasks;
 }

@@ -82,6 +82,7 @@
   .subject-multiplication{background:linear-gradient(120deg,#e63946,#f3722c);}
   .subject-written-mult{background:linear-gradient(120deg,#8a3ec9,#c14fd4); font-size:1.05rem; padding:18px 22px;}
   .subject-written-div{background:linear-gradient(120deg,#1a8f6b,#2fbf8f); font-size:1.05rem; padding:18px 22px;}
+  .subject-written-mixed{background:linear-gradient(120deg,#c9548a,#f0a03c); font-size:1.05rem; padding:18px 22px;}
 
   .footer-link{
     margin-top:18px; font-size:.8rem; opacity:.5; text-decoration:underline;
@@ -250,6 +251,10 @@
       <button class="subject-btn subject-written-div" onclick="chooseWrittenSubject('writtenDivision3')">
         ✍️ Schriftliche Division 3
         <small id="subject-stat-writtenDivision3">Paket 1</small>
+      </button>
+      <button class="subject-btn subject-written-mixed" onclick="chooseWrittenSubject('writtenMixed')">
+        🔀 Schriftlich Gemischt
+        <small id="subject-stat-writtenMixed">Paket 1</small>
       </button>
     </div>
   </div>
@@ -436,14 +441,15 @@ function goToWrittenHub(){
 }
 
 function appendWrittenPackageTile(path, n, current, packages){
+  const count = writtenPackageCountFor(currentWrittenSubject);
   const done = packages[n] && packages[n].completed;
   const locked = n > current;
-  const isReview = n > WRITTEN_PACKAGE_COUNT;
+  const isReview = n > count;
   const tile = document.createElement('div');
   tile.className = 'package-tile' + (locked ? ' locked' : (isReview ? ' review' : ''));
   if(!locked && !isReview) tile.style.background = TABLE_COLORS[((n-1)%12)+1];
   tile.innerHTML = `
-    <span>${locked ? '🔒 ' : ''}${writtenPackageTileLabel(n)}</span>
+    <span>${locked ? '🔒 ' : ''}${writtenPackageTileLabel(currentWrittenSubject, n)}</span>
     <span class="stars">${done ? starString(packages[n].stars) : (locked ? '' : 'neu')}</span>
   `;
   if(!locked) tile.onclick = ()=>startWrittenPaket(n);
@@ -460,7 +466,7 @@ function appendWrittenCaughtUpTile(path){
 function appendWrittenReviewPreviewTile(path, n, taskCount){
   const tile = document.createElement('div');
   tile.className = 'package-tile locked review';
-  tile.innerHTML = `<span>🔒 ${writtenPackageTileLabel(n)}</span><span class="stars">${taskCount}</span>`;
+  tile.innerHTML = `<span>🔒 ${writtenPackageTileLabel(currentWrittenSubject, n)}</span><span class="stars">${taskCount}</span>`;
   path.appendChild(tile);
 }
 
@@ -469,13 +475,14 @@ function renderWrittenPackagePath(){
   path.innerHTML = '';
   const current = currentWrittenPackageNumber(currentWrittenSubject);
   const packages = state.written[currentWrittenSubject].packages;
+  const count = writtenPackageCountFor(currentWrittenSubject);
 
-  for(let n=1; n<=WRITTEN_PACKAGE_COUNT; n++){
+  for(let n=1; n<=count; n++){
     appendWrittenPackageTile(path, n, current, packages);
   }
 
-  if(current > WRITTEN_PACKAGE_COUNT){
-    for(let n=WRITTEN_PACKAGE_COUNT+1; n<current; n++){
+  if(current > count){
+    for(let n=count+1; n<current; n++){
       appendWrittenPackageTile(path, n, current, packages);
     }
     const blocks = buildWrittenSonderblöcke(currentWrittenSubject);
@@ -503,7 +510,7 @@ function startWrittenPaket(packageNumber){
     mistakesFirstTry: 0,
     lockInput: false
   };
-  document.getElementById('schriftlich-title').textContent = writtenPackageTileLabel(packageNumber);
+  document.getElementById('schriftlich-title').textContent = writtenPackageTileLabel(currentWrittenSubject, packageNumber);
   document.getElementById('schriftlich-feedback').textContent = ' ';
   renderSchriftlichTask();
   showScreen('screen-schriftlich');
@@ -654,9 +661,9 @@ function finishSchriftlichRound(){
   saveState();
   cloudUpsertProgress();
 
-  const isReview = schriftlichQuiz.packageNumber > WRITTEN_PACKAGE_COUNT;
+  const isReview = schriftlichQuiz.packageNumber > writtenPackageCountFor(schriftlichQuiz.subject);
   const noMoreReview = isReview && buildWrittenSonderblöcke(schriftlichQuiz.subject).length === 0;
-  const label = writtenPackageTileLabel(schriftlichQuiz.packageNumber);
+  const label = writtenPackageTileLabel(schriftlichQuiz.subject, schriftlichQuiz.packageNumber);
 
   if(noMoreReview){
     document.getElementById('result-mascot').textContent = '🏆';

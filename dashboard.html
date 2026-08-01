@@ -672,7 +672,7 @@ function packagesFor(subject){
   return WRITTEN_SUBJECTS.includes(subject) ? state.written[subject].packages : state.subjects[subject].packages;
 }
 function curriculumCountFor(subject){
-  return WRITTEN_SUBJECTS.includes(subject) ? WRITTEN_PACKAGE_COUNT : CURRICULUM_PACKAGE_COUNT;
+  return WRITTEN_SUBJECTS.includes(subject) ? writtenPackageCountFor(subject) : CURRICULUM_PACKAGE_COUNT;
 }
 
 function packageStatsFor(subject){
@@ -738,7 +738,7 @@ function renderSubjectSection(subject){
   const accuracy = totalAttempts ? Math.round((totalCorrect/totalAttempts)*100) : null;
   const masteredCount = facts.filter(t=>t.fact.box>=3).length;
   const currentStand = isWritten
-    ? writtenPackageTileLabel(currentWrittenPackageNumber(subject))
+    ? writtenPackageTileLabel(subject, currentWrittenPackageNumber(subject))
     : `Paket ${currentPackageNumber(subject)}`;
 
   const perReihe = computePerReiheErrorRates(subject);
