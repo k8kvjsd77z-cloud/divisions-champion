@@ -590,6 +590,22 @@ function taskLogRowLabel(row){
   return row.detail || `(Aufgabentext nicht gespeichert - vor dem Update erfasst)`;
 }
 
+// Vollständige Tabellen (nicht nur die letzten 10) für den "Alle anzeigen"-
+// Ausklapper, damit wirklich jede einzelne falsche/übersprungene Aufgabe
+// einsehbar ist, nicht nur eine Kurzliste.
+function wrongTasksTableHTML(rows){
+  if(!rows.length) return '<p class="sub">Keine Einträge.</p>';
+  return `<table class="data-table"><thead><tr><th>Datum</th><th>Aufgabe</th><th>Antwort</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${r.created_at ? formatDay(r.created_at.slice(0,10)) : '–'}</td><td>${taskLogRowLabel(r)}</td><td>${r.given_answer!=null ? r.given_answer : '–'}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+function skippedTasksTableHTML(rows){
+  if(!rows.length) return '<p class="sub">Keine Einträge.</p>';
+  return `<table class="data-table"><thead><tr><th>Datum</th><th>Aufgabe</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${r.created_at ? formatDay(r.created_at.slice(0,10)) : '–'}</td><td>${taskLogRowLabel(r)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
 function computeAccuracyTrend(subject){
   const filtered = lastLog.filter(r=>r.subject===subject && !r.skipped);
   const byDay = {};
@@ -744,8 +760,12 @@ function renderSubjectSection(subject){
   const perReihe = computePerReiheErrorRates(subject);
   const weakest = computeWeakestFacts(subject, 8);
   const oftenSkipped = computeOftenSkipped(subject, 8);
-  const recentWrong = isWritten ? computeRecentWrongTasks(subject, 10) : [];
-  const recentSkipped = isWritten ? computeRecentSkippedTasks(subject, 10) : [];
+  // Für ALLE Fächer (nicht nur die schriftlichen) und automatisch auch für
+  // jedes künftig neu hinzugefügte Fach, da subject-getrieben aus lastLog.
+  const recentWrong = computeRecentWrongTasks(subject, 10);
+  const recentSkipped = computeRecentSkippedTasks(subject, 10);
+  const allWrong = computeRecentWrongTasks(subject, Infinity);
+  const allSkipped = computeRecentSkippedTasks(subject, Infinity);
   const trend = computeAccuracyTrend(subject);
   const insights = computeInsights(subject);
   const sym = subjectSymbol(subject);
@@ -804,13 +824,13 @@ function renderSubjectSection(subject){
         : `<p class="sub">Bisher keine ${itemWordSingular} auffällig oft übersprungen.</p>`}
     </div>
 
-    ${isWritten ? `
     <div class="card">
       <h2>Diese konkreten Aufgaben waren zuletzt falsch</h2>
       ${recentWrong.length ? `<ul class="weak-list">${recentWrong.map(r=>`
         <li><span>${taskLogRowLabel(r)}</span>
         <span class="pct">${r.created_at ? formatDay(r.created_at.slice(0,10)) : ''}${r.given_answer!=null ? ' · Antwort: '+r.given_answer : ''}</span></li>`).join('')}</ul>`
         : '<p class="sub">Bisher keine konkrete Aufgabe als falsch aufgezeichnet.</p>'}
+      ${allWrong.length > recentWrong.length ? tableToggle(`Alle ${allWrong.length} falschen Aufgaben anzeigen`, wrongTasksTableHTML(allWrong)) : ''}
     </div>
 
     <div class="card">
@@ -819,8 +839,8 @@ function renderSubjectSection(subject){
         <li><span>${taskLogRowLabel(r)}</span>
         <span class="pct skip">${r.created_at ? formatDay(r.created_at.slice(0,10)) : ''}</span></li>`).join('')}</ul>`
         : '<p class="sub">Bisher keine konkrete Aufgabe als übersprungen aufgezeichnet.</p>'}
+      ${allSkipped.length > recentSkipped.length ? tableToggle(`Alle ${allSkipped.length} übersprungenen Aufgaben anzeigen`, skippedTasksTableHTML(allSkipped)) : ''}
     </div>
-    ` : ''}
 
     <div class="insight-box">
       <h2>🔍 Was auffällt</h2>
