@@ -101,27 +101,16 @@ const SUBJECT_ICONS = {
 // Genau 5 feste Einstiegs-Pakete je Session (÷/× 2 bis 9 werden bis Paket 5
 // komplett eingeführt). Paket 6 und danach sind automatisch Wiederholungs-
 // Pakete, genau wie bei Division/Multiplikation ab Paket 11. Die gemischte
-// Session hat nur 3 Einstiegs-Pakete (siehe WRITTEN_PACKAGE_COUNT_OVERRIDES),
-// da sie beide Rechenarten schon einzeln geübt haben soll.
+// Session besteht aus 3 Paketen mit je 5 Unterpaketen (siehe
+// WRITTEN_MIXED_GROUP_SIZE) - macht 15 einzeln abschließbare Einstiegs-
+// Pakete insgesamt, jedes weiterhin genau WRITTEN_PACKAGE_SIZE Aufgaben groß.
 const WRITTEN_PACKAGE_COUNT = 5;
-const WRITTEN_PACKAGE_COUNT_OVERRIDES = { writtenMixed: 3 };
+const WRITTEN_MIXED_GROUP_SIZE = 5;
+const WRITTEN_PACKAGE_COUNT_OVERRIDES = { writtenMixed: 3 * WRITTEN_MIXED_GROUP_SIZE };
 function writtenPackageCountFor(subject){
   return WRITTEN_PACKAGE_COUNT_OVERRIDES[subject] || WRITTEN_PACKAGE_COUNT;
 }
-// WRITTEN_PACKAGE_SIZE ist die Größe eines einzelnen Blocks. Ein Paket
-// besteht aus 1..n Blöcken hintereinander (siehe WRITTEN_BLOCKS_PER_PACKAGE_
-// OVERRIDES) - bei den normalen Sessions genau 1 Block (= 5 Aufgaben je
-// Paket wie bisher), bei "Schriftlich Gemischt" 5 Blöcke (= 25 Aufgaben je
-// Paket). Die "maximal 2 schwere Divisions-Aufgaben"-Regel gilt weiterhin
-// pro Block, nicht pro ganzem Paket.
 const WRITTEN_PACKAGE_SIZE = 5;
-const WRITTEN_BLOCKS_PER_PACKAGE_OVERRIDES = { writtenMixed: 5 };
-function writtenBlocksPerPackage(subject){
-  return WRITTEN_BLOCKS_PER_PACKAGE_OVERRIDES[subject] || 1;
-}
-function writtenPackageSizeFor(subject){
-  return writtenBlocksPerPackage(subject) * WRITTEN_PACKAGE_SIZE;
-}
 // Welcher einstellige Faktor/Divisor je Paket im Topf ist - wächst wie bei
 // den normalen Paketen schrittweise.
 const WRITTEN_FACTOR_POOLS = [
@@ -429,9 +418,19 @@ function isWrittenCurriculumPackage(subject, packageNumber){
   return packageNumber <= writtenPackageCountFor(subject);
 }
 
+// Bei "Schriftlich Gemischt" ist ein Einstiegs-Paket (1-15) selbst wieder in
+// 3 Pakete mit je 5 Unterpaketen gegliedert (n=1-5 -> Paket 1, n=6-10 ->
+// Paket 2, n=11-15 -> Paket 3) - alle anderen Sessions bleiben bei der
+// flachen "Paket n"-Beschriftung.
 function writtenPackageTileLabel(subject, n){
   const count = writtenPackageCountFor(subject);
-  return n > count ? `Wiederholung ${n - count}` : `Paket ${n}`;
+  if(n > count) return `Wiederholung ${n - count}`;
+  if(WRITTEN_MIXED_SUBJECTS.includes(subject)){
+    const paket = Math.ceil(n / WRITTEN_MIXED_GROUP_SIZE);
+    const unterpaket = ((n - 1) % WRITTEN_MIXED_GROUP_SIZE) + 1;
+    return `Paket ${paket} · Unterpaket ${unterpaket}`;
+  }
+  return `Paket ${n}`;
 }
 
 // Analog zu buildSonderblöcke, aber auf Reihen-Ebene (2-9) statt auf
@@ -554,9 +553,9 @@ function buildWrittenTask(subject, packageNumber, forceHard, kind){
   };
 }
 
-// Ein einzelner Block (WRITTEN_PACKAGE_SIZE Aufgaben) - die "maximal 2
-// schwere Divisions-Aufgaben"-Regel wird hier pro Block ausgewertet.
-function buildWrittenTaskBlock(subject, packageNumber){
+// Ein Paket (WRITTEN_PACKAGE_SIZE Aufgaben) - die "maximal 2 schwere
+// Divisions-Aufgaben"-Regel wird pro Paket ausgewertet.
+function buildWrittenPackage(subject, packageNumber){
   const kindPerTask = [];
   for(let i=0; i<WRITTEN_PACKAGE_SIZE; i++) kindPerTask.push(pickWrittenTaskKind(subject));
   const divisionIndices = kindPerTask.map((k,i)=>k==='division' ? i : -1).filter(i=>i>=0);
@@ -566,30 +565,6 @@ function buildWrittenTaskBlock(subject, packageNumber){
     tasks.push(buildWrittenTask(subject, packageNumber, hardIndices.has(i), kindPerTask[i]));
   }
   return tasks;
-}
-
-// Ein Paket besteht aus 1..n Blöcken hintereinander (siehe
-// writtenBlocksPerPackage) - bei den normalen Sessions genau 1 Block, bei
-// "Schriftlich Gemischt" 5 Blöcke (= 25 Aufgaben je Paket).
-function buildWrittenPackage(subject, packageNumber){
-  const blocks = writtenBlocksPerPackage(subject);
-  let tasks = [];
-  for(let b=0; b<blocks; b++){
-    tasks = tasks.concat(buildWrittenTaskBlock(subject, packageNumber));
-  }
-  return tasks;
-}
-
-// Sterne-Schwellen relativ zur Paketgröße statt fest verdrahtet - bei 5
-// Aufgaben (Standard) entspricht das exakt den bisherigen Werten (0 Fehler
-// = 3 Sterne, 1-2 = 2 Sterne, 3+ = 1 Stern), bei größeren Paketen (z.B. 25
-// bei "Schriftlich Gemischt") skaliert es proportional mit.
-function starsForMistakes(mistakes, totalTasks){
-  const highThreshold = Math.max(3, Math.ceil(totalTasks * 0.6));
-  const lowThreshold = Math.max(1, Math.ceil(totalTasks * 0.2));
-  if(mistakes >= highThreshold) return 1;
-  if(mistakes >= lowThreshold) return 2;
-  return 3;
 }
 
 // Milli Power Akademie: gewichteter Pool über alle bisher eingeführten Reihen,

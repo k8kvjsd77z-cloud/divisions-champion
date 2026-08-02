@@ -455,7 +455,7 @@ function compactSummaryHTML(){
         <div class="summary-tile"><b>${days}</b><span>Übungstage insgesamt</span></div>
         <div class="summary-tile"><b>${state.score}</b><span>Punkte gesamt</span></div>
         ${perSubjectSummary.map(p=>`
-          <div class="summary-tile"><b>Paket ${p.paket}</b><span>${ALL_SUBJECT_LABELS[p.subject]} · ${p.stars} ⭐${p.flagged?` · ${p.flagged} zu wiederholen`:''}</span></div>
+          <div class="summary-tile"><b>${packageLabelFor(p.subject, p.paket)}</b><span>${ALL_SUBJECT_LABELS[p.subject]} · ${p.stars} ⭐${p.flagged?` · ${p.flagged} zu wiederholen`:''}</span></div>
         `).join('')}
       </div>
     </div>
@@ -627,7 +627,12 @@ function computeTasksByPackage(subject){
   );
 }
 
+// Für schriftliche Fächer übernimmt writtenPackageTileLabel (shared.js) die
+// Beschriftung - bei "Schriftlich Gemischt" verschachtelt sie zusätzlich in
+// "Paket X · Unterpaket Y", da dort ein Einstiegs-Paket selbst wieder aus 5
+// Unterpaketen besteht.
 function packageLabelFor(subject, n){
+  if(WRITTEN_SUBJECTS.includes(subject)) return writtenPackageTileLabel(subject, n);
   const curriculumCount = curriculumCountFor(subject);
   return n <= curriculumCount ? `Paket ${n}` : `Wiederholung ${n - curriculumCount}`;
 }
@@ -756,13 +761,13 @@ function packageOverviewRows(subject){
   let rows = '';
   for(let n=1; n<=curriculumCount; n++){
     const p = packages[n];
-    rows += `<li><span>Paket ${n}</span><span class="pct" style="color:var(--text-primary);">${p && p.completed ? starString(p.stars) : '– noch nicht gespielt'}</span></li>`;
+    rows += `<li><span>${packageLabelFor(subject, n)}</span><span class="pct" style="color:var(--text-primary);">${p && p.completed ? starString(p.stars) : '– noch nicht gespielt'}</span></li>`;
   }
   Object.keys(packages).map(Number)
     .filter(n=>n>curriculumCount && packages[n].completed)
     .sort((a,b)=>a-b)
     .forEach(n=>{
-      rows += `<li><span>Wiederholung ${n-curriculumCount}</span><span class="pct" style="color:var(--text-primary);">${starString(packages[n].stars)}</span></li>`;
+      rows += `<li><span>${packageLabelFor(subject, n)}</span><span class="pct" style="color:var(--text-primary);">${starString(packages[n].stars)}</span></li>`;
     });
   return rows;
 }
