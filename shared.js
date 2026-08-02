@@ -526,6 +526,7 @@ function buildWrittenTask(subject, packageNumber, forceHard, kind){
     const teil2 = einstellig * einerTeil;
     return {
       subject,
+      kind: 'multiplication',
       promptText: `${einstellig} × ${zweistellig} =`,
       einstellig,
       step1: { part: zehnerTeil, answer: teil1 },
@@ -545,6 +546,7 @@ function buildWrittenTask(subject, packageNumber, forceHard, kind){
   const teil2 = einstellig * einerTeil;
   return {
     subject,
+    kind: 'division',
     promptText: `${dividend} ÷ ${einstellig} =`,
     einstellig,
     step1: { part: teil1, answer: zehnerTeil },

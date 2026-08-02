@@ -540,7 +540,12 @@ function schriftlichStepRowHTML(isMult, einstellig, rowIndex){
 
 function renderSchriftlichTask(){
   const t = currentSchriftlichTask();
-  const isMult = WRITTEN_MULTIPLICATION_SUBJECTS.includes(t.subject);
+  // t.kind (nicht das Fach!) entscheidet über die Zeilen-Form: bei
+  // "Schriftlich Gemischt" ist das Fach für JEDE Aufgabe "writtenMixed",
+  // unabhängig davon, ob es sich um eine Multiplikations- oder Divisions-
+  // Aufgabe handelt - der Rechenweg muss trotzdem zur tatsächlichen
+  // Rechenart der jeweiligen Aufgabe passen.
+  const isMult = t.kind === 'multiplication';
   document.getElementById('schriftlich-question').textContent = t.promptText;
 
   const row1 = document.getElementById('schriftlich-step1-row');
